@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Live CEC turnout per ballot box, scaled to the final TV polls, projected to a final vote and seat estimate.">
+<meta property="og:title" content="K26 Turnout Estimator">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>K26 Turnout Estimator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;600;700&display=swap">
+</head>
+<body>
+<style>
+/* Layout: estimator summary first, then hourly curve + who's-voting, then box map beside the sortable places table. */
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --ink:#14171f; --ink-2:#4b5262; --ink-3:#7c8394; --rule:#dfe2e8; --tint:#eceef3;
+  --r:#d83a34; --l:#2a78d6; --a:#1baf7a; --o:#a3a8b3; --acc:#3b3f4a;
+  --pace-lo:#b45309; --pace-hi:#7c3aed; --mid:#d4d6dc;
+  --focus:#7c3aed;
+  --f-display:"Frank Ruhl Libre","Times New Roman",serif;
+  --f-body:"Assistant",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121417; --panel:#1a1c20; --ink:#eef0f3; --ink-2:#b7bcc7; --ink-3:#8b91a0; --rule:#2d3139; --tint:#23262c;
+  --r:#e5544c; --l:#3987e5; --a:#199e70; --o:#6f7480; --acc:#d6d9e0; --pace-lo:#e08a3c; --pace-hi:#a78bfa; --mid:#3a3e46; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121417; --panel:#1a1c20; --ink:#eef0f3; --ink-2:#b7bcc7; --ink-3:#8b91a0; --rule:#2d3139; --tint:#23262c;
+  --r:#e5544c; --l:#3987e5; --a:#199e70; --o:#6f7480; --acc:#d6d9e0; --pace-lo:#e08a3c; --pace-hi:#a78bfa; --mid:#3a3e46; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2{font-family:var(--f-display);text-wrap:balance;margin:0;font-weight:700}
+h1{font-size:clamp(28px,4.4vw,44px);line-height:1.05;letter-spacing:-.01em}
+h2{font-size:21px}
+.num{font-variant-numeric:tabular-nums}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+.muted{color:var(--ink-2)}
+.small{font-size:13px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding-bottom:4px;border-bottom:1px solid var(--rule);padding-block:0 16px}
+header p{margin:6px 0 0;max-width:62ch;color:var(--ink-2)}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rule);background:var(--panel);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 3px color-mix(in srgb,#16a34a 25%,transparent)}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:20px;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px}
+.est-top{display:flex;flex-wrap:wrap;gap:16px 40px;align-items:baseline;margin:6px 0 16px}
+.big{font-family:var(--f-display);font-size:clamp(34px,5vw,52px);font-weight:900;line-height:1}
+.kv .eyebrow{display:block;margin-bottom:6px}
+.stack{display:flex;height:44px;gap:2px;border-radius:4px;overflow:hidden}
+.stack>div{min-width:0;display:flex;align-items:center;padding:0 10px;color:#fff;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:14px;margin-top:14px}
+.leg{display:flex;gap:10px;align-items:flex-start}
+.sw{width:12px;height:12px;border-radius:3px;margin-top:5px;flex:none}
+.leg b{display:block;font-size:20px;font-family:var(--f-display)}
+.leg .letters{font-size:12px;color:var(--ink-3)}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px 24px;margin-top:20px;padding-top:16px;border-top:1px solid var(--rule)}
+.ctl label{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:14px;margin-bottom:6px}
+.ctl label span{color:var(--ink-2);font-weight:400}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:7px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:transparent;color:var(--ink-2);padding:7px 12px;font:600 13px var(--f-body);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+select,input[type=search]{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:7px;padding:7px 10px;width:100%}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.seats{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:12px;font-size:14px;color:var(--ink-2)}
+.seats b{color:var(--ink);font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--ink-3);margin:10px 0 0;max-width:80ch}
+svg text{fill:var(--ink-3);font:12px var(--f-body)}
+.comp-row{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:center;margin-top:10px}
+.comp-row .stack{height:26px}
+.comp-row .stack>div{font-size:12px;padding:0 6px}
+.mapwrap{position:relative}
+canvas{display:block;width:100%;max-width:100%;border-radius:6px;background:var(--tint);touch-action:none}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:8px 10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.15);min-width:180px;z-index:3}
+.tip b{font-size:14px}
+.zoom{position:absolute;top:8px;inset-inline-end:8px;display:flex;gap:4px;z-index:2}
+.zoom button{min-width:34px;height:34px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:6px;font:700 16px var(--f-body);cursor:pointer;padding:0 8px}
+.zoom button#zReset{font-size:12px}
+canvas{cursor:grab}
+.mapleg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-2);margin-top:8px;align-items:center}
+.ramp{width:120px;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--pace-lo),var(--mid),var(--pace-hi))}
+.tablebox{overflow:auto;max-height:min(68vh,640px);overscroll-behavior:contain;border:1px solid var(--rule);border-radius:6px;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;text-align:end;border-bottom:1px solid var(--rule);white-space:nowrap}
+th:first-child,td:first-child{text-align:start}
+th{position:sticky;top:0;vertical-align:bottom;line-height:1.25;background:var(--panel);font-size:12px;color:var(--ink-2);cursor:pointer;user-select:none;z-index:1}
+th[aria-sort] {color:var(--ink)}
+tbody tr:hover{background:var(--tint)}
+tbody tr{cursor:pointer}
+tr.sel{background:color-mix(in srgb,var(--pace-hi) 14%,transparent)}
+.mini{display:flex;height:12px;width:120px;gap:1px;border-radius:2px;overflow:hidden}
+.pace{display:inline-block;min-width:48px;border-radius:999px;padding:1px 7px;font-size:12px;font-weight:700;text-align:center}
+.tbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.tbar input{flex:1 1 200px;width:auto}
+footer{font-size:13px;color:var(--ink-3);border-top:1px solid var(--rule);padding-top:14px}
+footer a{color:var(--ink-2)}
+[lang=he] .eyebrow{letter-spacing:0;font-size:13px}
+.sw.i{display:inline-block;margin:0;margin-inline-end:6px;vertical-align:-1px}
+.langseg{align-self:flex-start}
+.hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+[dir=rtl] .hdr-right{align-items:flex-start}
+#curve,#curveLeg{direction:ltr}
+@media (prefers-reduced-motion:no-preference){.stack>div{transition:flex-grow .35s ease}}
+</style>
+
+<div class="wrap" id="wrap">
+<header>
+  <div>
+    <div class="eyebrow" data-i18n="kicker"></div>
+    <h1 data-i18n="h1"></h1>
+    <p data-i18n="lede"></p>
+  </div>
+  <div class="hdr-right"><div class="seg langseg" role="group" aria-label="Language / שפה"><button id="langHe" lang="he">עברית</button><button id="langEn" lang="en">English</button></div><span class="chip"><span class="dot"></span><span id="asof">…</span></span></div>
+</header>
+
+<section class="panel" aria-labelledby="est-h">
+  <div class="eyebrow" data-i18n="estEy"></div>
+  <h2 id="est-h" style="margin-top:4px" data-i18n="estH"></h2>
+  <div class="est-top">
+    <div class="kv"><span class="eyebrow" data-i18n="tNow"></span><span class="big num" id="tNow">–</span> <span class="muted small" id="tNowSub"></span></div>
+    <div class="kv"><span class="eyebrow" data-i18n="tFin"></span><span class="big num" id="tFin">–</span> <span class="muted small" id="tFinSub"></span></div>
+    <div class="kv"><span class="eyebrow" data-i18n="vFin"></span><span class="big num" id="vFin">–</span></div>
+  </div>
+  <div class="stack" id="finStack" role="img" aria-label="Projected vote split by bloc"></div>
+  <div class="legend" id="finLegend"></div>
+  <div class="seats" id="seats"></div>
+  <p class="note" id="envNote" style="margin-top:6px"></p>
+
+  <div class="controls">
+    <div class="ctl">
+      <label for="refYear"><b data-i18n="refL"></b> <span data-i18n="refS"></span></label>
+      <select id="refYear"></select>
+    </div>
+    <div class="ctl">
+      <label for="finOverride"><b data-i18n="finL"></b> <span id="finOverrideVal"></span></label>
+      <input type="range" id="finOverride" min="60" max="90" step="0.1" value="80">
+      <div class="small muted" style="margin-top:4px"><button id="finAuto" class="seg" style="padding:3px 10px;cursor:pointer;background:transparent;color:var(--ink-2);font:600 12px var(--f-body)" data-i18n="finReset"></button></div>
+    </div>
+    <div class="ctl">
+      <label><b data-i18n="modePoll"></b></label>
+      <div class="seg" role="group" aria-label="Poll adjustment">
+        <button id="pmPub" aria-pressed="true" data-i18n="pmPub"></button>
+        <button id="pmCor" aria-pressed="false" data-i18n="pmCor"></button>
+      </div>
+      <div class="small muted" style="margin-top:6px" id="modeNote"></div>
+    </div>
+    <div class="ctl">
+      <label><b data-i18n="winterL"></b></label>
+      <div class="seg" role="group" aria-label="Winter's list">
+        <button id="wOut" aria-pressed="true" data-i18n="wOut"></button>
+        <button id="wIn" aria-pressed="false" data-i18n="wIn"></button>
+      </div>
+      <div class="small muted" style="margin-top:6px" data-i18n="winterNote"></div>
+    </div>
+    <div class="ctl">
+      <label for="swing"><b data-i18n="swingL"></b> <span id="swingVal" dir="ltr"></span></label>
+      <input type="range" id="swing" min="-8" max="8" step="0.5" value="0">
+    </div>
+  </div>
+  <p class="note" data-i18n="seatNote">Seat figures divide 120 seats among the three blocs in proportion to their votes. Votes the polls put on lists below the threshold (about 8% of the Netanyahu bloc vote, mostly Winter's list and the Haredi list) are left out; otherwise they ignore the threshold and surplus agreements, so read them as a direction, not a count. Blocs follow 2022 party lines: Yisrael Beiteinu sits with center-left; Ha-Bayit Ha-Yehudi and parties that missed the threshold are "Other".</p>
+</section>
+
+<div class="grid2">
+  <section class="panel" aria-labelledby="curve-h">
+    <div class="eyebrow" data-i18n="curveEy"></div>
+    <h2 id="curve-h" data-i18n="curveH"></h2>
+    <svg id="curve" viewBox="0 0 520 260" width="100%" role="img" aria-label="Cumulative turnout by hour, 2026 against past elections"></svg>
+    <div class="mapleg" id="curveLeg"></div>
+  </section>
+  <section class="panel" aria-labelledby="comp-h">
+    <div class="eyebrow" data-i18n="compEy"></div>
+    <h2 id="comp-h" data-i18n="compH"></h2>
+    <p class="small muted" style="margin:6px 0 0" data-i18n="compP"></p>
+    <div id="comp"></div>
+    <p class="note" id="compNote"></p>
+  </section>
+</div>
+
+<div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr))">
+  <section class="panel" aria-labelledby="map-h">
+    <div class="eyebrow" data-i18n="mapEy"></div>
+    <h2 id="map-h" data-i18n="mapH"></h2>
+    <div class="tbar">
+      <div class="seg" role="group" aria-label="Map color">
+        <button id="mapLean" aria-pressed="true" data-i18n="mapLean"></button>
+        <button id="mapPace" aria-pressed="false" data-i18n="mapPace"></button>
+      </div>
+    </div>
+    <div class="mapwrap" id="mapwrap" style="margin-top:10px">
+      <canvas id="map" aria-label="Dot map of ballot boxes sized by projected votes"></canvas>
+      <div class="zoom"><button id="zIn" aria-label="Zoom in">+</button><button id="zOut" aria-label="Zoom out">−</button><button id="zReset" aria-label="Reset map" data-i18n="zReset"></button></div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <div class="mapleg" id="mapLeg"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="tbl-h" style="min-width:0">
+    <div class="eyebrow" data-i18n="tblEy"></div>
+    <h2 id="tbl-h" data-i18n="tblH"></h2>
+    <div class="tbar">
+      <input type="search" id="q" data-i18n-ph="search" dir="auto" aria-label="Search places">
+      <select id="pop" aria-label="Filter by population" style="width:auto">
+        <option value="" data-i18n="popAll"></option>
+        <option value="jewish" data-i18n="popJ"></option>
+        <option value="mixed" data-i18n="popM"></option>
+        <option value="arab" data-i18n="popA"></option>
+        <option value="bedouin" data-i18n="popB"></option>
+        <option value="druze" data-i18n="popD"></option>
+      </select>
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="note" id="tblNote"></p>
+  </section>
+</div>
+
+<footer data-i18n-html="footer">
+  Turnout: Central Elections Committee, per ballot box, via the open
+  <a href="https://github.com/harelc/elections-vote-transfer" target="_blank" rel="noopener">Kolot Nodedim</a> pipeline (each 2026 box matched to its 2022 twin).
+  2022 split: CEC ballot-box results. Poll scaling: final polls of Kan 11, Channel 12 and Channel 13 (23 Oct, weight 1 each) and Channel 14 (22 Oct, weight 0.3); weighted average: Netanyahu bloc 51.1 · change bloc 53.1 · Arab parties 14.6 · other 1.2. The change bloc includes Beyachad (Bennett) and Yisrael Beiteinu.
+  Station feeds lag the national total, so box-level voters are scaled up to the CEC national figure. This is an estimate from turnout only; no votes have been counted.
+</footer>
+</div>
+
+<script>
+const BLOCS=[
+  {k:'R',letters:'מחל · ט · שס · ג',css:'--r'},
+  {k:'L',letters:'פה · כן · ל · אמת · מרצ',css:'--l'},
+  {k:'A',letters:'עם · ום · ד',css:'--a'},
+  {k:'O',letters:null,css:'--o'}];
+BLOCS.forEach((B,i)=>Object.defineProperty(B,'name',{get:()=>t('blocs')[i]}));
+// Vote-share targets (%), converted from the final TV polls (Kan 11, N12, N13 weight 1; Channel 14 weight 0.3),
+// counting lists the polls showed below the 3.25% threshold.
+const TARGETS={
+  corrected:[43.48, 37.92, 14.20, 4.40], // 2022 result x (2026 polls / 2022 final polls)
+  published:[43.80, 41.70, 11.47, 3.03]  // 2026 polls as published
+};
+// share of each bloc's votes that the 2026 polls put on lists below the threshold
+// Winter's list ~2.83% and the Haredi list ~0.83% of the vote, out of the Netanyahu bloc's ~43.8% in the 2026 polls
+const WASTE_ALL=[0.084,0,0], WASTE_WINTER_IN=[0.019,0,0];
+let WASTE=WASTE_ALL;
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+const fmtK=n=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e4?Math.round(n/1e3)+'K':fmt(n);
+const pct=(x,d=1)=>(x*100).toFixed(d)+'%';
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const $=id=>document.getElementById(id);
+const I18N={
+en:{
+ kicker:'Elections to the 26th Knesset · 27 Oct 2026',
+ h1:'Turnout, converted to votes',
+ lede:"Each ballot box's live turnout from the Central Elections Committee, multiplied by how that same box split between the blocs in 2022, adjusted to the final TV polls. Summed up, it estimates where tonight's votes are coming from.",
+ estEy:'Final-vote estimate', estH:'Projected votes at 22:00, by bloc',
+ tNow:'Turnout now', tFin:'Projected final turnout', vFin:'Projected votes cast',
+ refL:'End-of-day curve', refS:'how the last hours usually go',
+ finL:'Final turnout', finReset:'Reset to curve', zReset:'Whole country', winterL:"Winter's list (Amcha)", wOut:'Below threshold', wIn:'Passes', winterNote:'Polled at 2.5–3.1% in the final polls; the threshold is 3.25%. If it passes, its votes (about 4 seats) count for the Netanyahu bloc.', auto:'auto',
+ modeL:'Who each box votes for', mode25:'Same as 2022', modePoll:'Scaled to TV polls', pmCor:'Corrected for 2022 poll miss', pmPub:'As published',
+ swingL:'Swing Netanyahu bloc → change bloc',
+ seatNote:'Seat figures divide 120 seats among the three blocs in proportion to their votes. Votes the polls put on lists below the threshold (about 8% of the Netanyahu bloc vote, mostly Winter\'s list and the Haredi list) are left out; otherwise they ignore the threshold and surplus agreements, so read them as a direction, not a count. Blocs follow 2022 party lines: Yisrael Beiteinu sits with center-left; Ha-Bayit Ha-Yehudi and parties that missed the threshold are "Other".',
+ curveEy:'CEC hourly releases', curveH:'Turnout through the day',
+ compEy:'Turnout composition', compH:'Who has voted so far',
+ compP:"Today's voters, each box split by its poll-adjusted lean, compared with the poll average itself. If one bloc's areas turn out more than expected, its share rises.",
+ mapEy:'12,000 ballot boxes', mapH:'Map of every box', mapLean:'2022 lean', mapPace:'Turnout vs 2022',
+ tblEy:'By place', tblH:'Potential, turnout and projected votes',
+ search:'Search a city or town (Hebrew)',
+ popAll:'All places', popJ:'Jewish', popM:'Mixed cities', popA:'Arab', popB:'Bedouin', popD:'Druze',
+ footer:'Turnout: Central Elections Committee, per ballot box, via the open <a href="https://github.com/harelc/elections-vote-transfer" target="_blank" rel="noopener">Kolot Nodedim</a> pipeline (each 2026 box matched to its 2022 twin). 2022 split: CEC ballot-box results. Poll scaling: final polls of Kan 11, Channel 12 and Channel 13 (23 Oct, weight 1 each) and Channel 14 (22 Oct, weight 0.3); weighted average: Netanyahu bloc 51.1 · change bloc 53.1 · Arab parties 14.6 · other 1.2. The change bloc includes Beyachad (Bennett) and Yisrael Beiteinu. Station feeds lag the national total, so box-level voters are scaled up to the CEC national figure. This is an estimate from turnout only; no votes have been counted. Licensed CC BY-NC-SA 4.0.',
+ blocs:['Netanyahu bloc','Change bloc','Arab parties','Other / below threshold'], blocShort:['Netanyahu','Change','Arab'],
+ lettersPre:'2022: ', belowThr:'incl. lists below the threshold',
+ asof:(hh,t)=>`CEC turnout as of ${hh} · ${t}%`, loadErr:m=>'Could not load data: '+m,
+ refLike:(l,r)=>`Like ${l} (×${r})`, refAvg:r=>`Average 2019–2022 (×${r})`, refFinal:'Polls closed: final figure',
+ at22h:v=>`2022 at this hour: ${v}%`, setByYou:'set by you', fin22:'2022 final: 70.6%',
+ ofVotes:'of votes', envNote:n=>`Includes about ${n} double-envelope votes (soldiers, diplomats, hospital patients and others). They aren't in the ballot-box feed and are counted after the polls close, so they're projected from 2022.`, oppTotal:'Change bloc + Arab parties:', seatEq:'Seat equivalent:', needs61:'A majority needs <b>61</b>',
+ modePollNote:w=>state.pm==='corrected'?`The final 2022 polls overrated the center-left by about 3.3 points and underrated the Arab parties by about 2.2. This assumes the 2026 polls miss the same way: each bloc's 2022 result is multiplied by (2026 polls ÷ 2022 final polls), giving vote-share targets of 43.5 · 37.9 · 14.2 · 4.4 (Netanyahu · change · Arab · other). Each box keeps its 2022 lean, with one multiplier per bloc (×${w[0].toFixed(2)} · ×${w[1].toFixed(2)} · ×${w[2].toFixed(2)} · ×${w[3].toFixed(2)}) set so that at 2022 turnout the country hits those targets. Tonight's turnout is applied on top.`:`The 2026 polls at face value, converted from seats to votes (including lists polling below the threshold): 43.8 · 41.7 · 11.5 · 3.0 (Netanyahu · change · Arab · other). Multipliers ×${w[0].toFixed(2)} · ×${w[1].toFixed(2)} · ×${w[2].toFixed(2)} · ×${w[3].toFixed(2)}, set so that at 2022 turnout the country hits those targets. Tonight's turnout is applied on top.`,
+ mode25Note:'Each box splits exactly as its 2022 twin did.',
+ rows:['Poll target (votes)','Voted so far','All eligible'],
+ compNote:d=>{const f=v=>`${v>=0?'+':'−'}${Math.abs(v).toFixed(1)}`;return `Compared with the poll target, today's voters so far lean Netanyahu bloc ${f(d[0])}, change bloc ${f(d[1])}, Arab parties ${f(d[2])} points. The difference is who is turning out, measured box by box.`},
+ compNoteAdj:'Rows use the split chosen above, so the 2022 row is the only fixed reference.',
+ legCurve:['2026','projection','2022','2019–2021'],
+ ledIn:n=>`${n} led in 2022`, dotSize:'Dot size = projected votes',
+ paceLeg:['Turning out less than usual','more than usual',"(vs each box's 2022 final, relative to the national pace)"],
+ box:'box', eligible:'eligible', voted:'voted', notRep:'not reported', fin22here:'2022 final turnout here:',
+ byClose:'votes by 22:00', twinTown:'No exact 2022 twin; uses town average', twinGroup:'New place; uses group average',
+ cols:{name:'Place',E:'Eligible voters<br><span style="font-weight:400">(100% turnout)</span>',pot:'≈ Seats at 100%<br><span style="font-weight:400">estimate</span>',Tn:'Voted now<br><span style="font-weight:400">% of eligible</span>',pace:'Turnout pace<br><span style="font-weight:400">vs its 2022 final</span>',Vf:'Votes by 22:00<br><span style="font-weight:400">projected</span>',split:'Bloc split<br><span style="font-weight:400">poll-adjusted</span>',R:'Netanyahu bloc<br><span style="font-weight:400">projected votes*</span>',L:'Change bloc<br><span style="font-weight:400">projected votes*</span>',A:'Arab parties<br><span style="font-weight:400">projected votes*</span>',worth:'≈ Seats worth<br><span style="font-weight:400">estimate</span>'},
+ noMatch:q=>`No place matches “${q}”. Try the Hebrew spelling, e.g. תל אביב - יפו.`,
+ tblNote:(n,more)=>`${n} places${more?', top 150 shown':''}. *Bloc columns are projected votes by 22:00: each ballot box's turnout so far, projected to the end of the day, split by that box's 2022 result adjusted to the TV polls (the same numbers as the totals at the top; Netanyahu bloc excludes lists below the threshold). "Seats at 100%" is the place's share of all eligible voters × 120, an approximation. "Turnout pace" is not a voter count: it compares the share of the place's 2022 final turnout already reached with the country as a whole, so +10% means it is filling up 10% faster than average. "Seats worth" is the place's share of projected votes × 120.`,
+ stackAria:'Projected vote split by bloc', mapAria:'Dot map of ballot boxes sized by projected votes', curveAria:'Cumulative turnout by hour, 2026 against past elections',
+ docTitle:'K26 Turnout Estimator', pp:'pp',
+},
+he:{
+ kicker:'הבחירות לכנסת ה-26 · 27.10.2026',
+ h1:'אחוזי ההצבעה, מתורגמים לקולות',
+ lede:'אחוז ההצבעה החי בכל קלפי, לפי ועדת הבחירות המרכזית, מוכפל בחלוקה בין הגושים באותה קלפי בבחירות 2022, מותאמת לסקרים האחרונים של ערוצי הטלוויזיה. הסכום מעריך מאיפה מגיעים הקולות הערב.',
+ estEy:'הערכת התוצאה הסופית', estH:'קולות צפויים ב-22:00, לפי גוש',
+ tNow:'אחוז הצבעה עכשיו', tFin:'אחוז הצבעה סופי צפוי', vFin:'מספר מצביעים צפוי',
+ refL:'עקומת סוף היום', refS:'איך נראות בדרך כלל השעות האחרונות',
+ finL:'אחוז הצבעה סופי', finReset:'חזרה לעקומה', zReset:'כל הארץ', winterL:'רשימת וינטר (עמך)', wOut:'לא עוברת', wIn:'עוברת', winterNote:'קיבלה 2.5%–3.1% בסקרים האחרונים; אחוז החסימה הוא 3.25%. אם היא עוברת, הקולות שלה (כ-4 מנדטים) נספרים לגוש נתניהו.', auto:'אוטומטי',
+ modeL:'למי מצביעים בכל קלפי', mode25:'כמו ב-2022', modePoll:'מותאם לסקרי הערוצים', pmCor:'מתוקן לפי הטעות ב-2022', pmPub:'כפי שפורסמו',
+ swingL:'מעבר מגוש נתניהו לגוש השינוי',
+ seatNote:'המנדטים מחולקים בין שלושת הגושים לפי היחס בין הקולות שלהם. קולות שהסקרים שמים ברשימות מתחת לאחוז החסימה (כ-8% מקולות גוש נתניהו, בעיקר רשימת וינטר והרשימה החרדית) לא נספרים; מעבר לזה החישוב מתעלם מאחוז החסימה ומהסכמי עודפים, ולכן הוא מראה כיוון ולא ספירה. הגושים לפי מפת המפלגות של 2022: ישראל ביתנו במרכז-שמאל; הבית היהודי ומפלגות שלא עברו את אחוז החסימה נספרים כ"אחר".',
+ curveEy:'פרסומי ועדת הבחירות כל שעתיים', curveH:'אחוז ההצבעה לאורך היום',
+ compEy:'הרכב המצביעים', compH:'מי הצביע עד עכשיו',
+ compP:'המצביעים של היום, כל קלפי לפי הנטייה שלה מותאמת לסקרים, מול ממוצע הסקרים עצמו. כשבאזורים של גוש אחד יוצאים להצביע יותר מהצפוי, החלק שלו עולה.',
+ mapEy:'12,000 קלפיות', mapH:'מפת כל הקלפיות', mapLean:'הגוש המוביל ב-2022', mapPace:'הצבעה מול 2022',
+ tblEy:'לפי יישוב', tblH:'פוטנציאל, אחוז הצבעה וקולות צפויים',
+ search:'חיפוש עיר או יישוב',
+ popAll:'כל היישובים', popJ:'יהודי', popM:'ערים מעורבות', popA:'ערבי', popB:'בדואי', popD:'דרוזי',
+ footer:'אחוזי הצבעה: ועדת הבחירות המרכזית, לפי קלפי, דרך פרויקט הקוד הפתוח <a href="https://github.com/harelc/elections-vote-transfer" target="_blank" rel="noopener">קולות נודדים</a> (כל קלפי ב-2026 מותאמת לקלפי התאומה שלה ב-2022). החלוקה ב-2022: תוצאות ועדת הבחירות לפי קלפי. ההתאמה לסקרים: הסקרים האחרונים של כאן 11, חדשות 12 וחדשות 13 (23.10, משקל 1 לכל אחד) וערוץ 14 (22.10, משקל 0.3); ממוצע משוקלל: גוש נתניהו 51.1 · גוש השינוי 53.1 · מפלגות ערביות 14.6 · אחר 1.2. גוש השינוי כולל את ביחד (בנט) ואת ישראל ביתנו. הנתונים ברמת הקלפי מתעדכנים לאט יותר מהסכום הארצי, ולכן הם מוגדלים כך שיתאימו למספר הארצי של ועדת הבחירות. זוהי הערכה על סמך אחוזי הצבעה בלבד; עדיין לא נספר אף קול. רישיון CC BY-NC-SA 4.0.',
+ blocs:['גוש נתניהו','גוש השינוי','המפלגות הערביות','אחר / מתחת לאחוז החסימה'], blocShort:['נתניהו','שינוי','ערבים'],
+ lettersPre:'2022: ', belowThr:'כולל רשימות מתחת לאחוז החסימה',
+ asof:(hh,t)=>`ועדת הבחירות, נכון ל-${hh} · ${t}%`, loadErr:m=>'טעינת הנתונים נכשלה: '+m,
+ refLike:(l,r)=>`כמו ב-${l} (×${r})`, refAvg:r=>`ממוצע 2019–2022 (×${r})`, refFinal:'הקלפיות נסגרו: נתון סופי',
+ at22h:v=>`ב-2022 באותה שעה: ${v}%`, setByYou:'נקבע ידנית', fin22:'סופי ב-2022: 70.6%',
+ ofVotes:'מהקולות', envNote:n=>`כולל כ-${n} קולות במעטפות כפולות (חיילים, דיפלומטים, מאושפזים ואחרים). הם לא מופיעים בנתוני הקלפיות ונספרים אחרי סגירת הקלפיות, ולכן הם מוערכים לפי 2022.`, oppTotal:'גוש השינוי + מפלגות ערביות:', seatEq:'שווה ערך במנדטים:', needs61:'רוב דורש <b>61</b>',
+ modePollNote:w=>state.pm==='corrected'?`הסקרים האחרונים של 2022 הגזימו בכוח של מרכז-שמאל בכ-3.3 נקודות והמעיטו בכוח של המפלגות הערביות בכ-2.2. כאן ההנחה היא שגם סקרי 2026 טועים באותו כיוון: התוצאה של כל גוש ב-2022 מוכפלת ב(סקרי 2026 ÷ סקרי 2022 האחרונים), וכך מתקבלים יעדי אחוזי קולות של 43.5 · 37.9 · 14.2 · 4.4 (נתניהו · שינוי · ערבים · אחר). כל קלפי שומרת על הנטייה שלה מ-2022, עם מכפיל אחד לכל גוש (×${w[0].toFixed(2)} · ×${w[1].toFixed(2)} · ×${w[2].toFixed(2)} · ×${w[3].toFixed(2)}) שנקבע כך שבאחוזי הצבעה של 2022 הארץ מגיעה ליעדים. אחוזי ההצבעה של הערב מוחלים מעל זה.`:`סקרי 2026 כפי שפורסמו, מומרים ממנדטים לקולות (כולל רשימות שמתחת לאחוז החסימה): 43.8 · 41.7 · 11.5 · 3.0 (נתניהו · שינוי · ערבים · אחר). מכפילים ×${w[0].toFixed(2)} · ×${w[1].toFixed(2)} · ×${w[2].toFixed(2)} · ×${w[3].toFixed(2)}, שנקבעו כך שבאחוזי הצבעה של 2022 הארץ מגיעה ליעדים. אחוזי ההצבעה של הערב מוחלים מעל זה.`,
+ mode25Note:'כל קלפי מתחלקת בדיוק כמו קלפי התאומה שלה ב-2022.',
+ rows:['יעד לפי הסקרים (קולות)','הצביעו עד עכשיו','כל בעלי זכות הבחירה'],
+ compNote:d=>{const f=v=>`${v>=0?'+':'−'}${Math.abs(v).toFixed(1)}`;return `לעומת היעד לפי הסקרים, המצביעים עד עכשיו: גוש נתניהו ${f(d[0])}, גוש השינוי ${f(d[1])}, המפלגות הערביות ${f(d[2])} נקודות. ההבדל נובע ממי שיוצא להצביע, קלפי אחר קלפי.`},
+ compNoteAdj:'השורות משתמשות בחלוקה שנבחרה למעלה, ולכן רק שורת 2022 היא נקודת ייחוס קבועה.',
+ legCurve:['2026','תחזית','2022','2019–2021'],
+ ledIn:n=>`${n} הוביל ב-2022`, dotSize:'גודל הנקודה = קולות צפויים',
+ paceLeg:['מצביעים פחות מהרגיל','יותר מהרגיל','(מול אחוז ההצבעה הסופי של כל קלפי ב-2022, ביחס לקצב הארצי)'],
+ box:'קלפי', eligible:'בעלי זכות בחירה', voted:'הצביעו', notRep:'לא דווח', fin22here:'אחוז הצבעה סופי כאן ב-2022:',
+ byClose:'קולות עד 22:00', twinTown:'אין קלפי תאומה מדויקת; לפי ממוצע היישוב', twinGroup:'יישוב חדש; לפי ממוצע הקבוצה',
+ cols:{name:'יישוב',E:'בעלי זכות בחירה<br><span style="font-weight:400">(הצבעה של 100%)</span>',pot:'≈ מנדטים ב-100%<br><span style="font-weight:400">הערכה</span>',Tn:'הצביעו עכשיו<br><span style="font-weight:400">% מבעלי הזכות</span>',pace:'קצב הצבעה<br><span style="font-weight:400">מול הסופי ב-2022</span>',Vf:'קולות עד 22:00<br><span style="font-weight:400">צפי</span>',split:'חלוקת גושים<br><span style="font-weight:400">מותאמת לסקרים</span>',R:'גוש נתניהו<br><span style="font-weight:400">קולות צפויים*</span>',L:'גוש השינוי<br><span style="font-weight:400">קולות צפויים*</span>',A:'מפלגות ערביות<br><span style="font-weight:400">קולות צפויים*</span>',worth:'≈ שווי במנדטים<br><span style="font-weight:400">הערכה</span>'},
+ noMatch:q=>`אין יישוב שמתאים ל"${q}". נסו כתיב אחר, למשל תל אביב - יפו.`,
+ tblNote:(n,more)=>`${n} יישובים${more?', מוצגים 150 הראשונים':''}. *עמודות הגושים הן קולות צפויים עד 22:00: אחוז ההצבעה בכל קלפי עד עכשיו, מוערך לסוף היום, ומחולק לפי התוצאה של אותה קלפי ב-2022 כשהיא מותאמת לסקרי הערוצים (אותם מספרים כמו הסכומים למעלה; גוש נתניהו בלי רשימות שמתחת לאחוז החסימה). "מנדטים ב-100%" הוא החלק של היישוב מכלל בעלי זכות הבחירה × 120, הערכה בלבד. "קצב הצבעה" אינו מספר מצביעים: הוא משווה כמה מאחוז ההצבעה הסופי של היישוב ב-2022 כבר הושג, ביחס לארץ כולה, כך ש‎+10%‎ אומר שהיישוב מתמלא מהר ב-10% מהממוצע. "שווי במנדטים" הוא החלק של היישוב מהקולות הצפויים × 120.`,
+ stackAria:'חלוקת הקולות הצפויה לפי גוש', mapAria:'מפת נקודות של הקלפיות לפי קולות צפויים', curveAria:'אחוז הצבעה מצטבר לפי שעה, 2026 מול בחירות קודמות',
+ docTitle:'K26 Turnout Estimator', pp:'נק׳',
+}};
+let LANG='he';
+try{const h=location.hash.replace('#','');if(h==='en'||h==='he')LANG=h;else{const s=localStorage.getItem('lang');if(s==='en'||s==='he')LANG=s;}}catch(e){}
+const t=k=>I18N[LANG][k];
+function applyLang(){
+  const he=LANG==='he'; document.documentElement.lang=LANG; document.documentElement.dir=he?'rtl':'ltr';
+  document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n));
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>el.innerHTML=t(el.dataset.i18nHtml));
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>el.placeholder=t(el.dataset.i18nPh));
+  $('finStack').setAttribute('aria-label',t('stackAria')); $('map').setAttribute('aria-label',t('mapAria')); $('curve').setAttribute('aria-label',t('curveAria'));
+  $('langHe').setAttribute('aria-pressed',he); $('langEn').setAttribute('aria-pressed',!he);
+}
+function setLang(l){LANG=l;try{localStorage.setItem('lang',l)}catch(e){}
+  try{history.replaceState(null,'','#'+l)}catch(e){try{location.hash=l}catch(_){}}
+  applyLang(); if(D){initRefOptions(); drawAll();}}
+
+applyLang();
+$('langHe').onclick=()=>setLang('he'); $('langEn').onclick=()=>setLang('en');
+
+let D,S,state={ref:'2022',fin:null,mode:'poll',pm:'published',winter:false,swing:0,map:'lean',sort:'proj',dir:-1,q:'',pop:'',sel:null};
+let hourIdx, tNow, places=[], calc={};
+
+fetch('data.json').then(r=>r.json()).then(init).catch(e=>{$('asof').textContent=t('loadErr')(e.message)});
+
+function init(d){
+  D=d; S=d.stations;
+  const t=new Date(d.as_of); const hh=t.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Jerusalem'});
+  const hour=+hh.slice(0,2);
+  state.hh=hh;
+  tNow=d.national.turnout/100;
+  const hours=[10,12,14,16,18,20,22]; hourIdx=hours.indexOf(hour);
+  // reference curves: ratio final / at this hour
+  const recent=d.historical.filter(e=>e.knesset>=22);
+  const ratios=recent.map(e=>e.values[6]/e.values[hourIdx]);
+  const avg=ratios.reduce((a,b)=>a+b,0)/ratios.length;
+  state.ratios={avg}; state.recent=recent;
+  recent.forEach((e,i)=>state.ratios[String(e.knesset)]=ratios[i]);
+  state.ref=hourIdx===6?'final':'25';
+  initRefOptions();
+  // impute missing box voters by district rate
+  const dist={};
+  for(const s of S){ if(s[5]!=null){const k=s[7];dist[k]=dist[k]||[0,0];dist[k][0]+=s[5];dist[k][1]+=s[4];} }
+  let sumV=0; for(const s of S){ if(s[5]==null){const r=dist[s[7]];s[13]=r?s[4]*r[0]/r[1]:0;} else s[13]=s[5]; sumV+=s[13]; }
+  state.k=d.national.voters/sumV;
+  let a=0,b=0,c=0; for(const s of S){ if(s[5]!=null&&s[6]!=null){a+=s[5]*state.k;b+=s[6]/100*s[4];c+=s[4];} }
+  state.natPace=(a/c)/(b/c); // national: share of 2022-final voters already in
+  bind(); recompute();
+}
+
+function initRefOptions(){
+  const r=state.ratios, lbl=e=>e.knesset===22?(LANG==='he'?'ספטמבר 2019':'Sep 2019'):String(e.year);
+  let opts=[['25',t('refLike')('2022',r['25'].toFixed(3))],['avg',t('refAvg')(r.avg.toFixed(3))],
+    ...state.recent.filter(e=>e.knesset!==25).map(e=>[String(e.knesset),t('refLike')(lbl(e),r[e.knesset].toFixed(3))])];
+  if(hourIdx===6) opts=[['final',t('refFinal')]];
+  $('refYear').innerHTML=opts.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  $('refYear').value=state.ref;
+  $('asof').textContent=t('asof')(state.hh,D.national.turnout);
+}
+function bind(){
+  $('refYear').onchange=e=>{state.ref=e.target.value;state.fin=null;recompute()};
+  $('finOverride').oninput=e=>{state.fin=+e.target.value/100;recompute()};
+  $('finAuto').onclick=()=>{state.fin=null;recompute()};
+
+  const setPm=m=>{state.pm=m;$('pmCor').setAttribute('aria-pressed',m==='corrected');$('pmPub').setAttribute('aria-pressed',m==='published');recompute()};
+  $('pmCor').onclick=()=>setPm('corrected'); $('pmPub').onclick=()=>setPm('published');
+  const setW=v=>{state.winter=v;WASTE=v?WASTE_WINTER_IN:WASTE_ALL;$('wIn').setAttribute('aria-pressed',v);$('wOut').setAttribute('aria-pressed',!v);recompute()};
+  $('wIn').onclick=()=>setW(true); $('wOut').onclick=()=>setW(false);
+  $('swing').oninput=e=>{state.swing=+e.target.value;recompute()};
+  const setMap=m=>{state.map=m;$('mapLean').setAttribute('aria-pressed',m==='lean');$('mapPace').setAttribute('aria-pressed',m==='pace');drawMap()};
+  $('mapLean').onclick=()=>setMap('lean'); $('mapPace').onclick=()=>setMap('pace');
+  $('q').oninput=e=>{state.q=e.target.value.trim();state.sel=null;renderTable();drawMap()};
+  $('pop').onchange=e=>{state.pop=e.target.value;renderTable()};
+  window.addEventListener('resize',()=>{clearTimeout(window._rz);window._rz=setTimeout(()=>{drawMap();drawCurve()},120)});
+  if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{drawAll()});
+  new MutationObserver(()=>drawAll()).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  mapEvents();
+}
+
+function finalTurnout(){
+  if(state.fin!=null) return state.fin;
+  if(state.ref==='final') return tNow;
+  return Math.min(0.92,tNow*(state.ratios[state.ref]||state.ratios.avg));
+}
+
+function shares(s){ // per-station R,L,A,O before calibration
+  const r=s[9]/1000,l=s[10]/1000,a=s[11]/1000; return [r,l,a,Math.max(0,1-r-l-a)];
+}
+
+function recompute(){
+  const Tf=finalTurnout(), ratio=Tf/tNow, k=state.k;
+  // base national shares weighted by final votes
+  const W=new Float64Array(S.length);
+  for(let i=0;i<S.length;i++){const s=S[i]; W[i]=Math.min(0.95*s[4], s[13]*k*ratio);}
+  let w=[1,1,1,1];
+  const natShares=wt=>{const t=[0,0,0,0];for(let i=0;i<S.length;i++){const sh=adj(shares(S[i]),wt,0);for(let b=0;b<4;b++)t[b]+=W[i]*sh[b];}const T=t.reduce((a,b)=>a+b,0);return t.map(x=>x/T)};
+  if(state.mode==='poll') w=(state.wPoll&&state.wPoll[state.pm])||calibrate();
+  const base=natShares(w);
+  const x=state.swing/100/base[0]; // fraction of right voters moving
+  calc={Tf,ratio,w,x,W};
+  // aggregate
+  const nat=[0,0,0,0], now=[0,0,0,0]; const byPlace=new Map();
+  for(let i=0;i<S.length;i++){
+    const s=S[i], sh=adj(shares(s),w,x), Vn=s[13]*k, Vf=W[i];
+    for(let b=0;b<4;b++){nat[b]+=Vf*sh[b];now[b]+=Vn*sh[b];}
+    let p=byPlace.get(s[0]); if(!p){p={name:s[0],dist:s[7],pop:s[8],E:0,Vn:0,Vf:0,b:[0,0,0,0],bn:[0,0,0,0],k25:0,k25E:0,Vn25:0,boxes:0,lat:0,lng:0,ll:0};byPlace.set(s[0],p);}
+    p.E+=s[4];p.Vn+=Vn;p.Vf+=Vf;p.boxes++;
+    if(s[6]!=null&&s[5]!=null){p.k25+=s[6]/100*s[4];p.k25E+=s[4];p.Vn25+=Vn;}
+    for(let b=0;b<4;b++){p.b[b]+=Vf*sh[b];p.bn[b]+=Vn*sh[b];}
+    if(s[2]){p.lat+=s[2];p.lng+=s[3];p.ll++;}
+    s[14]=sh; s[15]=Vf;
+  }
+  // double-envelope votes (soldiers, diplomats, hospitals…): not in the box feed, counted after polls close.
+  // 2022 count × growth in eligible voters × (projected final turnout / 2022 final 70.6%), split as in 2022, poll-scaled.
+  const env=D.k25_env||[0,0,0,0], envT=env.reduce((a,b)=>a+b,0);
+  const envScale=envT?(D.national.eligible/D.k25_elig)*(Tf/0.706):0;
+  const envSh=adj(env.map(v=>v/(envT||1)),w,x); calc.env=envT*envScale;
+  for(let b=0;b<4;b++) nat[b]+=calc.env*envSh[b];
+  calc.nat=nat; calc.now=now; calc.totF=nat.reduce((a,b)=>a+b,0);
+  places=[...byPlace.values()];
+  for(const p of places){p.Tn=p.Vn/p.E;p.Tf=p.Vf/p.E;p.k25t=p.k25E?p.k25/p.k25E:0;p.pot=p.E/D.national.eligible*120;p.worth=p.Vf/calc.totF*120;}
+  renderEstimate(); renderComp(); drawCurve(); renderTable(); drawMap();
+}
+
+// Find one weight per bloc such that, with 2022 turnout in every box (plus 2022 envelope votes),
+// the national split equals the poll average. Tonight's turnout is then applied on top.
+function calibrate(){
+  const items=S.map(s=>[shares(s),(s[6]!=null?s[6]:66)/100*s[4]]);
+  const env=D.k25_env||[0,0,0,0], eT=env.reduce((a,b)=>a+b,0);
+  if(eT) items.push([env.map(v=>v/eT), eT*D.national.eligible/D.k25_elig]);
+  const tgt=TARGETS[state.pm].map(x=>x/100); let w=[1,1,1,1];
+  for(let it=0;it<60;it++){
+    const t=[0,0,0,0]; for(const [sh,x] of items){const v=adj(sh,w,0);for(let b=0;b<4;b++)t[b]+=x*v[b];}
+    const T=t.reduce((a,b)=>a+b,0); w=w.map((v,b)=>v*tgt[b]/(t[b]/T));
+  }
+  state.wPoll=state.wPoll||{}; return state.wPoll[state.pm]=w;
+}
+function adj(sh,w,x){
+  let v=sh.map((s,b)=>s*w[b]); const T=v.reduce((a,b)=>a+b,0)||1; v=v.map(s=>s/T);
+  if(x){const m=Math.max(-v[1],Math.min(v[0],v[0]*x)); v[0]-=m; v[1]+=m;}
+  return v;
+}
+
+function stackHTML(vals,labels=true){
+  const T=vals.reduce((a,b)=>a+b,0);
+  return vals.map((v,b)=>`<div style="flex:${v/T} 1 0;background:var(${BLOCS[b].css})" title="${BLOCS[b].name}: ${pct(v/T)}">${labels&&v/T>0.06?pct(v/T):''}</div>`).join('');
+}
+
+function renderEstimate(){
+  const {Tf,nat,totF}=calc, n=D.national;
+  $('tNow').textContent=pct(tNow);
+  const h22=D.historical.find(e=>e.knesset===25).values[hourIdx];
+  $('tNowSub').textContent=hourIdx>=0&&hourIdx<6?t('at22h')(h22):'';
+  $('tFin').textContent=pct(Tf);
+  $('tFinSub').textContent=state.fin!=null?t('setByYou'):t('fin22');
+  $('vFin').textContent=fmtK(totF);
+  const fo=$('finOverride'); if(state.fin==null) fo.value=(Tf*100).toFixed(1);
+  $('finOverrideVal').textContent=state.fin==null?`${t('auto')} · ${pct(Tf)}`:pct(Tf);
+  $('swingVal').textContent=(state.swing>0?'+':'')+state.swing.toFixed(1)+' '+t('pp');
+  // votes for lists polling below the threshold (part of the Netanyahu bloc) move to "Other / below threshold"
+  const disp=[...nat]; for(let b=0;b<3;b++){const wv=nat[b]*WASTE[b]; disp[b]-=wv; disp[3]+=wv;}
+  $('finStack').innerHTML=stackHTML(disp);
+  $('finLegend').innerHTML=BLOCS.map((B,b)=>`<div class="leg"><span class="sw" style="background:var(${B.css})"></span><div><span class="small muted">${B.name}</span><b class="num">${fmt(disp[b])}</b><span class="small num">${pct(disp[b]/totF)} ${t('ofVotes')}</span><div class="letters">${B.letters?`2022: <span dir="rtl">${B.letters}</span>`:t('belowThr')}</div></div></div>`).join('');
+  const eff=[0,1,2].map(b=>nat[b]*(1-WASTE[b])); const three=eff[0]+eff[1]+eff[2];
+  const seats=[0,1,2].map(b=>120*eff[b]/three);
+  // round with largest remainder
+  const fl=seats.map(Math.floor); let rem=120-fl.reduce((a,b)=>a+b,0);
+  seats.map((s,i)=>[s-fl[i],i]).sort((a,b)=>b[0]-a[0]).slice(0,rem).forEach(([,i])=>fl[i]++);
+  $('seats').innerHTML=`<span>${t('seatEq')}</span>`+[0,1,2].map(b=>`<span><span class="sw i" style="background:var(${BLOCS[b].css})"></span>${BLOCS[b].name} <b>${fl[b]}</b></span>`).join('')+`<span>${t('oppTotal')} <b>${fl[1]+fl[2]}</b></span><span>${t('needs61')}</span>`;
+  $('modeNote').textContent=t('modePollNote')(calc.w);
+  $('envNote').textContent=t('envNote')(fmtK(calc.env));
+}
+
+function renderComp(){
+  const k25=D.k25_nat, now=calc.now;
+  const elig=[0,0,0,0]; for(const s of S){const sh=adj(shares(s),calc.w,calc.x);for(let b=0;b<4;b++)elig[b]+=s[4]*sh[b];}
+  const rows=[[t('rows')[0],TARGETS[state.pm]],[t('rows')[1],now],[t('rows')[2],elig]];
+  $('comp').innerHTML=rows.map(([l,v])=>`<div class="comp-row"><span class="small" style="font-weight:600">${l}</span><div class="stack">${stackHTML(v)}</div></div>`).join('')
+   +`<div class="mapleg" style="margin-top:12px">${BLOCS.map(B=>`<span><span class="sw i" style="background:var(${B.css})"></span>${B.name}</span>`).join('')}</div>`;
+  const T=a=>a.reduce((x,y)=>x+y,0);
+  const d=[0,1,2].map(b=>(now[b]/T(now)-TARGETS[state.pm][b]/100)*100);
+  $('compNote').textContent=t('compNote')(d);
+}
+
+function drawCurve(){
+  const svg=$('curve'); if(!D) return;
+  const W=520,H=260,m={l:40,r:16,t:12,b:28};
+  const hours=[7,10,12,14,16,18,20,22];
+  const x=h=>m.l+(h-7)/15*(W-m.l-m.r), y=v=>H-m.b-v/90*(H-m.t-m.b);
+  let g='';
+  for(const v of [0,20,40,60,80]) g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)"/><text x="${m.l-6}" y="${y(v)+4}" text-anchor="end">${v}%</text>`;
+  for(const h of [8,10,12,14,16,18,20,22]) g+=`<text x="${x(h)}" y="${H-8}" text-anchor="middle">${h}:00</text>`;
+  const line=(pts,stroke,w,dash='')=>`<polyline fill="none" stroke="${stroke}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round" ${dash?`stroke-dasharray="${dash}"`:''} points="${pts.map(([h,v])=>x(h)+','+y(v)).join(' ')}"/>`;
+  const past=D.historical.filter(e=>e.knesset>=21);
+  for(const e of past) if(e.knesset!==25) g+=line([[7,0],...hours.slice(1).map((h,i)=>[h,e.values[i]])],'var(--ink-3)',1.2);
+  const e25=D.historical.find(e=>e.knesset===25);
+  g+=line([[7,0],...hours.slice(1).map((h,i)=>[h,e25.values[i]])],'var(--ink-2)',2,'5 4');
+  const pts=D.history.map(h=>{const t=new Date(h.as_of);const hr=+t.toLocaleTimeString('en-GB',{hour:'2-digit',hour12:false,timeZone:'Asia/Jerusalem'}).slice(0,2);return [hr,h.turnout]});
+  g+=line(pts,'var(--acc)',2.5);
+  const last=pts[pts.length-1];
+  if(last[0]<22) g+=line([last,[22,calc.Tf*100]],'var(--acc)',2,'2 5');
+  for(const p of pts.slice(1)) g+=`<circle cx="${x(p[0])}" cy="${y(p[1])}" r="3.5" fill="var(--acc)" stroke="var(--panel)" stroke-width="2"/>`;
+  g+=`<circle cx="${x(last[0])}" cy="${y(last[1])}" r="5.5" fill="var(--acc)" stroke="var(--panel)" stroke-width="2"/><text x="${x(last[0])-8}" y="${y(last[1])-10}" text-anchor="end" style="fill:var(--ink);font-weight:700">${last[1]}%</text>`;
+  if(last[0]<22) g+=`<circle cx="${x(22)}" cy="${y(calc.Tf*100)}" r="4" fill="var(--panel)" stroke="var(--acc)" stroke-width="2"/><text x="${x(22)-6}" y="${y(calc.Tf*100)-10}" text-anchor="end" style="fill:var(--ink)">≈${(calc.Tf*100).toFixed(1)}%</text>`;
+  svg.innerHTML=g;
+  $('curveLeg').innerHTML=`<span><svg width="22" height="6"><line x1="0" x2="22" y1="3" y2="3" stroke="var(--acc)" stroke-width="2.5"/></svg> ${t('legCurve')[0]}</span><span><svg width="22" height="6"><line x1="0" x2="22" y1="3" y2="3" stroke="var(--acc)" stroke-width="2" stroke-dasharray="2 5"/></svg> ${t('legCurve')[1]}</span><span><svg width="22" height="6"><line x1="0" x2="22" y1="3" y2="3" stroke="var(--ink-2)" stroke-width="2" stroke-dasharray="5 4"/></svg> ${t('legCurve')[2]}</span><span><svg width="22" height="6"><line x1="0" x2="22" y1="3" y2="3" stroke="var(--ink-3)" stroke-width="1.2"/></svg> ${t('legCurve')[3]}</span>`;
+}
+
+/* ---------- map ---------- */
+const BB={lat0:29.45,lat1:33.35,lng0:34.2,lng1:35.95};
+let mapPts=[], mapGeom={};
+const VIEW0={s:2.2,lat:32.0,lng:34.95}; let view={...VIEW0};
+function drawMap(){
+  const cv=$('map'); if(!D) return;
+  const wpx=cv.parentElement.clientWidth; const kx=Math.cos(31.5*Math.PI/180);
+  const aspect=(BB.lat1-BB.lat0)/((BB.lng1-BB.lng0)*kx);
+  const hpx=Math.min(wpx*aspect, 900, Math.max(420, innerHeight*0.8)); const wUse=hpx/aspect;
+  const dpr=window.devicePixelRatio||1;
+  cv.style.height=hpx+'px'; cv.width=wpx*dpr; cv.height=hpx*dpr;
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,wpx,hpx);
+  const ox=(wpx-wUse)/2;
+  const bx=lng=>ox+(lng-BB.lng0)/(BB.lng1-BB.lng0)*wUse, by=lat=>(BB.lat1-lat)/(BB.lat1-BB.lat0)*hpx;
+  const cx=bx(view.lng), cy=by(view.lat);
+  const px=lng=>(bx(lng)-cx)*view.s+wpx/2, py=lat=>(by(lat)-cy)*view.s+hpx/2;
+  mapGeom.inv=(x,y)=>({lng:BB.lng0+(((x-wpx/2)/view.s+cx)-ox)/wUse*(BB.lng1-BB.lng0), lat:BB.lat1-(((y-hpx/2)/view.s+cy)/hpx)*(BB.lat1-BB.lat0)});
+  mapGeom.k={wUse,hpx};
+  const col={R:css('--r'),L:css('--l'),A:css('--a'),O:css('--o'),lo:css('--pace-lo'),hi:css('--pace-hi'),mid:css('--mid'),bg:css('--tint')};
+  const q=state.q;
+  mapPts=[];
+  const order=S.map((s,i)=>i).filter(i=>S[i][2]).sort((a,b)=>S[b][15]-S[a][15]);
+  for(const i of order){
+    const s=S[i]; const x=px(s[3]), y=py(s[2]); const r=Math.max(1.4,Math.sqrt(s[15])/12*(wUse/420)*Math.sqrt(view.s));
+    if(x<-20||y<-20||x>wpx+20||y>hpx+20) continue;
+    let c;
+    if(state.map==='lean'){const sh=s[14];const b=sh.indexOf(Math.max(...sh));c=[col.R,col.L,col.A,col.O][b];ctx.globalAlpha=0.35+0.6*Math.min(1,Math.max(...sh)-0.3);}
+    else{ctx.globalAlpha=0.8; const p=(s[5]!=null&&s[6])?(s[5]*state.k/s[4])/(s[6]/100)/state.natPace : null;
+      c=p==null?col.mid:mix(p);}
+    const dim=q&&!s[0].includes(q); if(dim) ctx.globalAlpha=0.08;
+    ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fillStyle=c; ctx.fill();
+    mapPts.push([x,y,i]);
+  }
+  ctx.globalAlpha=1;
+  if(state.sel){ const p=places.find(p=>p.name===state.sel); if(p&&p.ll){ctx.beginPath();ctx.arc(px(p.lng/p.ll),py(p.lat/p.ll),14,0,7);ctx.strokeStyle=css('--ink');ctx.lineWidth=2;ctx.stroke();}}
+  mapGeom.px=px; mapGeom.py=py;
+  function mix(p){ // p ~ relative pace, 1 = national average pace
+    const t=Math.max(-1,Math.min(1,(p-1)/0.35));
+    return lerp(col.mid, t<0?col.lo:col.hi, Math.abs(t));
+  }
+  $('mapLeg').innerHTML=state.map==='lean'
+    ?BLOCS.slice(0,3).map(B=>`<span><span class="sw i" style="background:var(${B.css})"></span>${t('ledIn')(B.name)}</span>`).join('')+`<span>${t('dotSize')}</span>`
+    :`<span>${t('paceLeg')[0]}</span><span class="ramp" style="direction:ltr"></span><span>${t('paceLeg')[1]}</span><span>${t('paceLeg')[2]}</span>`;
+}
+function lerp(a,b,t){const p=h=>{h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16))};const A=p(a),B=p(b);return `rgb(${A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(',')})`}
+function mapEvents(){
+  const cv=$('map'), tip=$('tip');
+  const zoomAt=(f,x,y)=>{const r=cv.getBoundingClientRect();x=x??r.width/2;y=y??r.height/2;
+    const before=mapGeom.inv(x,y); view.s=Math.max(1,Math.min(14,view.s*f)); drawMap();
+    const after=mapGeom.inv(x,y); view.lng+=before.lng-after.lng; view.lat+=before.lat-after.lat; drawMap();};
+  $('zIn').onclick=()=>zoomAt(1.6); $('zOut').onclick=()=>zoomAt(1/1.6); $('zReset').onclick=()=>{view={s:1,lat:(BB.lat0+BB.lat1)/2,lng:(BB.lng0+BB.lng1)/2};drawMap()};
+  cv.addEventListener('wheel',e=>{e.preventDefault();const r=cv.getBoundingClientRect();zoomAt(e.deltaY<0?1.25:0.8,e.clientX-r.left,e.clientY-r.top)},{passive:false});
+  let drag=null, moved=false; const ptrs=new Map(); let pinch=null;
+  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);moved=false;
+    if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch=Math.hypot(a[0]-b[0],a[1]-b[1]);drag=null}else drag=[e.clientX,e.clientY];});
+  cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+    if(ptrs.size===2&&pinch){const [a,b]=[...ptrs.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);const r=cv.getBoundingClientRect();zoomAt(d/pinch,(a[0]+b[0])/2-r.left,(a[1]+b[1])/2-r.top);pinch=d;moved=true;return}
+    if(!drag)return; const dx=e.clientX-drag[0], dy=e.clientY-drag[1]; if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
+    const k=mapGeom.k; view.lng-=dx/view.s/k.wUse*(BB.lng1-BB.lng0); view.lat+=dy/view.s/k.hpx*(BB.lat1-BB.lat0); drag=[e.clientX,e.clientY]; tip.hidden=true; drawMap();});
+  const up=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size)drag=null};
+  cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up);
+  cv.addEventListener('click',e=>{if(moved)e.stopImmediatePropagation()},true);
+  const near=e=>{const r=cv.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;let best=null,bd=144;for(const [x,y,i] of mapPts){const d=(x-mx)**2+(y-my)**2;if(d<bd){bd=d;best=i}}return [best,mx,my]};
+  cv.addEventListener('mousemove',e=>{
+    const [i,mx,my]=near(e); if(i==null){tip.hidden=true;return}
+    const s=S[i], sh=s[14];
+    tip.innerHTML=`<b dir="auto">${s[0]}</b> <span class="muted">${t('box')} ${s[1]}</span><br>
+      <span class="num">${fmt(s[4])} ${t('eligible')} · ${s[5]!=null?pct(s[5]/s[4])+' '+t('voted'):t('notRep')}</span><br>
+      <span class="small muted">${t('fin22here')} ${s[6]!=null?s[6]+'%':'–'}</span>
+      <div class="stack" style="height:10px;margin:6px 0 4px">${stackHTML(sh,false)}</div>
+      <span class="small num">${[0,1,2].map(b=>`${t('blocShort')[b]} ${pct(sh[b],0)}`).join(' · ')}</span><br>
+      <span class="small num">≈${fmt(s[15])} ${t('byClose')}</span>${s[12]===1?`<br><span class="small muted">${t('twinTown')}</span>`:s[12]===2?`<br><span class="small muted">${t('twinGroup')}</span>`:''}`;
+    tip.hidden=false;
+    const W=cv.clientWidth; tip.style.left=Math.max(0,Math.min(mx+14,W-210))+'px'; tip.style.top=(my+14)+'px';
+  });
+  cv.addEventListener('mouseleave',()=>tip.hidden=true);
+  cv.addEventListener('click',e=>{const [i]=near(e);if(i!=null){state.sel=S[i][0];$('q').value=S[i][0];state.q=S[i][0];renderTable();drawMap();}});
+}
+
+/* ---------- table ---------- */
+const COLS=[
+  {k:'name',l:'Place',f:p=>`<span dir="auto">${p.name}</span>`},
+  {k:'E',l:'Eligible (100%)',f:p=>fmt(p.E)},
+  {k:'pot',l:'Seats at 100%',f:p=>p.pot.toFixed(2)},
+  {k:'Tn',l:'Voted now',f:p=>pct(p.Tn)},
+  {k:'pace',l:'vs 2022',f:p=>paceChip(p)},
+  {k:'Vf',l:'Votes by 22:00',f:p=>fmt(p.Vf)},
+  {k:'split',l:'2022 split',f:p=>`<div class="mini">${stackHTML(p.b,false)}</div>`,ns:1},
+  {k:'R',l:'Right',f:p=>fmt(p.b[0]*(1-WASTE[0]))},
+  {k:'L',l:'Center-left',f:p=>fmt(p.b[1])},
+  {k:'A',l:'Arab',f:p=>fmt(p.b[2])},
+  {k:'worth',l:'Seats worth',f:p=>p.worth.toFixed(2)},
+];
+function paceVal(p){ // turnout so far / 2022 final, relative to national ratio
+  if(!p.k25t||!p.k25E) return null; return (p.Vn25/p.k25E)/(p.k25t)/state.natPace;
+}
+function paceChip(p){const v=paceVal(p); if(v==null) return '–';
+  const t=Math.max(-1,Math.min(1,(v-1)/0.35)); const c=lerp(css('--mid'),t<0?css('--pace-lo'):css('--pace-hi'),Math.abs(t));
+  return `<span dir="ltr" class="pace" style="background:${c};color:${Math.abs(t)>0.45?'#fff':'var(--ink)'}">${v>=1?'+':''}${((v-1)*100).toFixed(0)}%</span>`}
+const sortKey={name:p=>p.name,E:p=>p.E,pot:p=>p.pot,Tn:p=>p.Tn,pace:p=>paceVal(p)??-9,Vf:p=>p.Vf,proj:p=>p.Vf,R:p=>p.b[0],L:p=>p.b[1],A:p=>p.b[2],worth:p=>p.worth};
+function renderTable(){
+  if(!places.length) return;
+  $('thead').innerHTML=COLS.map(c=>`<th scope="col" data-k="${c.k}" ${(state.sort===c.k||(state.sort==='proj'&&c.k==='Vf'))?`aria-sort="${state.dir<0?'descending':'ascending'}"`:''}>${t('cols')[c.k]}${(state.sort===c.k||(state.sort==='proj'&&c.k==='Vf'))?(state.dir<0?' ▾':' ▴'):''}</th>`).join('');
+  $('thead').querySelectorAll('th').forEach(th=>{const c=COLS.find(c=>c.k===th.dataset.k);if(c.ns)return;th.tabIndex=0;th.onclick=th.onkeydown=e=>{if(e.type==='keydown'&&e.key!=='Enter')return;const k=th.dataset.k;if(state.sort===k||(state.sort==='proj'&&k==='Vf'))state.dir*=-1;else{state.sort=k;state.dir=k==='name'?1:-1}renderTable()}});
+  const key=sortKey[state.sort];
+  let rows=places.filter(p=>(!state.q||p.name.includes(state.q))&&(!state.pop||p.pop===state.pop));
+  rows.sort((a,b)=>{const x=key(a),y=key(b);return (x>y?1:x<y?-1:0)*state.dir});
+  const shown=rows.slice(0,150);
+  $('tbody').innerHTML=shown.map(p=>`<tr data-n="${p.name.replace(/"/g,'&quot;')}" class="${state.sel===p.name?'sel':''}">${COLS.map(c=>`<td>${c.f(p)}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${COLS.length}" style="text-align:start;white-space:normal">${t('noMatch')(state.q)}</td></tr>`;
+  $('tbody').querySelectorAll('tr[data-n]').forEach(tr=>tr.onclick=()=>{state.sel=state.sel===tr.dataset.n?null:tr.dataset.n;renderTable();drawMap()});
+  $('tblNote').textContent=t('tblNote')(rows.length.toLocaleString(),rows.length>150);
+}
+function drawAll(){ if(D){renderEstimate();renderComp();drawCurve();renderTable();drawMap();} }
+</script>
+
+</body>
+</html>

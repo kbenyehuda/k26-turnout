@@ -21,7 +21,7 @@ jobs:
       - name: Download source data (Kolot Nodedim, CC BY-NC-SA 4.0)
         run: |
           set -euo pipefail
-          BASE=https://raw.githubusercontent.com/harelc/elections-vote-transfer/main
+          BASE=https://raw.githubusercontent.com/harelc/elections-vote-transfer/master
           mkdir -p src/site/data
           curl -fsSL "$BASE/ballot25.csv" -o src/ballot25.csv
           curl -fsSL "$BASE/site/data/turnout_day_26.json" -o src/site/data/turnout_day_26.json

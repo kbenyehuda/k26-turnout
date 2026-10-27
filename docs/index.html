@@ -263,7 +263,7 @@ en:{
  curveEy:'CEC hourly releases', curveH:'Turnout through the day',
  compEy:'Turnout composition', compH:'Who has voted so far',
  compP:"Today's voters, each box split by its poll-adjusted lean, compared with the poll average itself. If one bloc's areas turn out more than expected, its share rises.",
- mapEy:'12,000 ballot boxes', mapH:'Map of every box', mapLean:'2022 lean', mapPace:'Turnout vs 2022',
+ mapEy:'12,000 ballot boxes', mapH:'Map of every box', mapLean:'2022 lean', mapPace:'Pace vs country',
  tblEy:'By place', tblH:'Potential, turnout and projected votes',
  search:'Search a city or town (Hebrew)',
  popAll:'All places', popJ:'Jewish', popM:'Mixed cities', popA:'Arab', popB:'Bedouin', popD:'Druze',
@@ -281,12 +281,14 @@ en:{
  compNoteAdj:'Rows use the split chosen above, so the 2022 row is the only fixed reference.',
  legCurve:['2026','projection','2022','2019–2021'],
  ledIn:n=>`${n} led in 2022`, dotSize:'Dot size = projected votes',
- paceLeg:['Turning out less than usual','more than usual',"(vs each box's 2022 final, relative to the national pace)"],
+ paceLeg:['Growing slower than the country','faster',"(votes so far vs each box's 2022 final, compared with the national change)"],
+ tips:{chg:"Votes cast here so far compared with this place's FINAL 2022 vote count. +4% means 4% more people have already voted than voted all day in 2022.",pace:"Not a vote count. Compares this place's change vs 2022 with the country's. Negative means it is growing less than the country, even if it already has more votes than in 2022."},
+ rowTip:(r,n)=>`${pct(r,0)} of its 2022 votes are already in; the country is at ${pct(n,0)}`,
  box:'box', eligible:'eligible', voted:'voted', notRep:'not reported', fin22here:'2022 final turnout here:',
  byClose:'votes by 22:00', twinTown:'No exact 2022 twin; uses town average', twinGroup:'New place; uses group average',
- cols:{name:'Place',E:'Eligible voters<br><span style="font-weight:400">(100% turnout)</span>',pot:'≈ Seats at 100%<br><span style="font-weight:400">estimate</span>',Tn:'Voted now<br><span style="font-weight:400">% of eligible</span>',pace:'Turnout pace<br><span style="font-weight:400">vs its 2022 final</span>',Vf:'Votes by 22:00<br><span style="font-weight:400">projected</span>',split:'Bloc split<br><span style="font-weight:400">poll-adjusted</span>',R:'Netanyahu bloc<br><span style="font-weight:400">projected votes*</span>',L:'Change bloc<br><span style="font-weight:400">projected votes*</span>',A:'Arab parties<br><span style="font-weight:400">projected votes*</span>',worth:'≈ Seats worth<br><span style="font-weight:400">estimate</span>'},
+ cols:{name:'Place',E:'Eligible voters<br><span style="font-weight:400">(100% turnout)</span>',pot:'≈ Seats at 100%<br><span style="font-weight:400">estimate</span>',Tn:'Voted now<br><span style="font-weight:400">% of eligible</span>',chg:'Votes vs 2022<br><span style="font-weight:400">so far, vs its 2022 final</span>',pace:'Pace vs country<br><span style="font-weight:400">relative to national growth</span>',Vf:'Votes by 22:00<br><span style="font-weight:400">projected</span>',split:'Bloc split<br><span style="font-weight:400">poll-adjusted</span>',R:'Netanyahu bloc<br><span style="font-weight:400">projected votes*</span>',L:'Change bloc<br><span style="font-weight:400">projected votes*</span>',A:'Arab parties<br><span style="font-weight:400">projected votes*</span>',worth:'≈ Seats worth<br><span style="font-weight:400">estimate</span>'},
  noMatch:q=>`No place matches “${q}”. Try the Hebrew spelling, e.g. תל אביב - יפו.`,
- tblNote:(n,more)=>`${n} places${more?', top 150 shown':''}. *Bloc columns are projected votes by 22:00: each ballot box's turnout so far, projected to the end of the day, split by that box's 2022 result adjusted to the TV polls (the same numbers as the totals at the top; Netanyahu bloc excludes lists below the threshold). "Seats at 100%" is the place's share of all eligible voters × 120, an approximation. "Turnout pace" is not a voter count: it compares the share of the place's 2022 final turnout already reached with the country as a whole, so +10% means it is filling up 10% faster than average. "Seats worth" is the place's share of projected votes × 120.`,
+ tblNote:(n,more,nat)=>`${n} places${more?', top 150 shown':''}. *Bloc columns are projected votes by 22:00: each ballot box's turnout so far, projected to the end of the day, split by that box's 2022 result adjusted to the TV polls (the same numbers as the totals at the top; Netanyahu bloc excludes lists below the threshold). "Seats at 100%" is the place's share of all eligible voters × 120, an approximation. "Votes vs 2022" is the plain change: votes cast so far vs the place's final 2022 count (+4% = already 4% more voters than in all of 2022). "Pace vs country" compares that change with the whole country's (currently ${nat}), so a place can be ahead of 2022 and still show a negative pace: −10% means it has grown 10% less than the country. "Seats worth" is the place's share of projected votes × 120.`,
  stackAria:'Projected vote split by bloc', mapAria:'Dot map of ballot boxes sized by projected votes', curveAria:'Cumulative turnout by hour, 2026 against past elections',
  docTitle:'K26 Turnout Estimator', pp:'pp',
 },
@@ -304,7 +306,7 @@ he:{
  curveEy:'פרסומי ועדת הבחירות כל שעתיים', curveH:'אחוז ההצבעה לאורך היום',
  compEy:'הרכב המצביעים', compH:'מי הצביע עד עכשיו',
  compP:'המצביעים של היום, כל קלפי לפי הנטייה שלה מותאמת לסקרים, מול ממוצע הסקרים עצמו. כשבאזורים של גוש אחד יוצאים להצביע יותר מהצפוי, החלק שלו עולה.',
- mapEy:'12,000 קלפיות', mapH:'מפת כל הקלפיות', mapLean:'הגוש המוביל ב-2022', mapPace:'הצבעה מול 2022',
+ mapEy:'12,000 קלפיות', mapH:'מפת כל הקלפיות', mapLean:'הגוש המוביל ב-2022', mapPace:'קצב מול הארץ',
  tblEy:'לפי יישוב', tblH:'פוטנציאל, אחוז הצבעה וקולות צפויים',
  search:'חיפוש עיר או יישוב',
  popAll:'כל היישובים', popJ:'יהודי', popM:'ערים מעורבות', popA:'ערבי', popB:'בדואי', popD:'דרוזי',
@@ -322,12 +324,14 @@ he:{
  compNoteAdj:'השורות משתמשות בחלוקה שנבחרה למעלה, ולכן רק שורת 2022 היא נקודת ייחוס קבועה.',
  legCurve:['2026','תחזית','2022','2019–2021'],
  ledIn:n=>`${n} הוביל ב-2022`, dotSize:'גודל הנקודה = קולות צפויים',
- paceLeg:['מצביעים פחות מהרגיל','יותר מהרגיל','(מול אחוז ההצבעה הסופי של כל קלפי ב-2022, ביחס לקצב הארצי)'],
+ paceLeg:['גדל לאט יותר מהארץ','מהר יותר','(הקולות עד עכשיו מול הסופי של כל קלפי ב-2022, בהשוואה לשינוי הארצי)'],
+ tips:{chg:"הקולות שהוטלו כאן עד עכשיו לעומת מספר הקולות הסופי של היישוב ב-2022. ‎+4%‎ אומר שכבר הצביעו 4% יותר אנשים מכל יום הבחירות ב-2022.",pace:"לא מספר מצביעים. משווה את השינוי של היישוב מול 2022 לשינוי של הארץ כולה. ערך שלילי אומר שהיישוב גדל פחות מהארץ, גם אם כבר יש בו יותר קולות מאשר ב-2022."},
+ rowTip:(r,n)=>`כבר הוטלו ${pct(r,0)} מהקולות של 2022; בארץ כולה ${pct(n,0)}`,
  box:'קלפי', eligible:'בעלי זכות בחירה', voted:'הצביעו', notRep:'לא דווח', fin22here:'אחוז הצבעה סופי כאן ב-2022:',
  byClose:'קולות עד 22:00', twinTown:'אין קלפי תאומה מדויקת; לפי ממוצע היישוב', twinGroup:'יישוב חדש; לפי ממוצע הקבוצה',
- cols:{name:'יישוב',E:'בעלי זכות בחירה<br><span style="font-weight:400">(הצבעה של 100%)</span>',pot:'≈ מנדטים ב-100%<br><span style="font-weight:400">הערכה</span>',Tn:'הצביעו עכשיו<br><span style="font-weight:400">% מבעלי הזכות</span>',pace:'קצב הצבעה<br><span style="font-weight:400">מול הסופי ב-2022</span>',Vf:'קולות עד 22:00<br><span style="font-weight:400">צפי</span>',split:'חלוקת גושים<br><span style="font-weight:400">מותאמת לסקרים</span>',R:'גוש נתניהו<br><span style="font-weight:400">קולות צפויים*</span>',L:'גוש השינוי<br><span style="font-weight:400">קולות צפויים*</span>',A:'מפלגות ערביות<br><span style="font-weight:400">קולות צפויים*</span>',worth:'≈ שווי במנדטים<br><span style="font-weight:400">הערכה</span>'},
+ cols:{name:'יישוב',E:'בעלי זכות בחירה<br><span style="font-weight:400">(הצבעה של 100%)</span>',pot:'≈ מנדטים ב-100%<br><span style="font-weight:400">הערכה</span>',Tn:'הצביעו עכשיו<br><span style="font-weight:400">% מבעלי הזכות</span>',chg:'קולות מול 2022<br><span style="font-weight:400">עד עכשיו, מול הסופי ב-2022</span>',pace:'קצב מול הארץ<br><span style="font-weight:400">ביחס לשינוי הארצי</span>',Vf:'קולות עד 22:00<br><span style="font-weight:400">צפי</span>',split:'חלוקת גושים<br><span style="font-weight:400">מותאמת לסקרים</span>',R:'גוש נתניהו<br><span style="font-weight:400">קולות צפויים*</span>',L:'גוש השינוי<br><span style="font-weight:400">קולות צפויים*</span>',A:'מפלגות ערביות<br><span style="font-weight:400">קולות צפויים*</span>',worth:'≈ שווי במנדטים<br><span style="font-weight:400">הערכה</span>'},
  noMatch:q=>`אין יישוב שמתאים ל"${q}". נסו כתיב אחר, למשל תל אביב - יפו.`,
- tblNote:(n,more)=>`${n} יישובים${more?', מוצגים 150 הראשונים':''}. *עמודות הגושים הן קולות צפויים עד 22:00: אחוז ההצבעה בכל קלפי עד עכשיו, מוערך לסוף היום, ומחולק לפי התוצאה של אותה קלפי ב-2022 כשהיא מותאמת לסקרי הערוצים (אותם מספרים כמו הסכומים למעלה; גוש נתניהו בלי רשימות שמתחת לאחוז החסימה). "מנדטים ב-100%" הוא החלק של היישוב מכלל בעלי זכות הבחירה × 120, הערכה בלבד. "קצב הצבעה" אינו מספר מצביעים: הוא משווה כמה מאחוז ההצבעה הסופי של היישוב ב-2022 כבר הושג, ביחס לארץ כולה, כך ש‎+10%‎ אומר שהיישוב מתמלא מהר ב-10% מהממוצע. "שווי במנדטים" הוא החלק של היישוב מהקולות הצפויים × 120.`,
+ tblNote:(n,more,nat)=>`${n} יישובים${more?', מוצגים 150 הראשונים':''}. *עמודות הגושים הן קולות צפויים עד 22:00: אחוז ההצבעה בכל קלפי עד עכשיו, מוערך לסוף היום, ומחולק לפי התוצאה של אותה קלפי ב-2022 כשהיא מותאמת לסקרי הערוצים (אותם מספרים כמו הסכומים למעלה; גוש נתניהו בלי רשימות שמתחת לאחוז החסימה). "מנדטים ב-100%" הוא החלק של היישוב מכלל בעלי זכות הבחירה × 120, הערכה בלבד. "קולות מול 2022" הוא השינוי הפשוט: הקולות עד עכשיו מול מספר הקולות הסופי של היישוב ב-2022 (‎+4%‎ = כבר 4% יותר מצביעים מכל 2022). "קצב מול הארץ" משווה את השינוי הזה לשינוי בארץ כולה (כרגע ${nat}), ולכן יישוב יכול להיות מעל 2022 ועדיין להציג קצב שלילי: ‎−10%‎ אומר שהוא גדל ב-10% פחות מהארץ. "שווי במנדטים" הוא החלק של היישוב מהקולות הצפויים × 120.`,
  stackAria:'חלוקת הקולות הצפויה לפי גוש', mapAria:'מפת נקודות של הקלפיות לפי קולות צפויים', curveAria:'אחוז הצבעה מצטבר לפי שעה, 2026 מול בחירות קודמות',
  docTitle:'K26 Turnout Estimator', pp:'נק׳',
 }};
@@ -625,7 +629,8 @@ const COLS=[
   {k:'E',l:'Eligible (100%)',f:p=>fmt(p.E)},
   {k:'pot',l:'Seats at 100%',f:p=>p.pot.toFixed(2)},
   {k:'Tn',l:'Voted now',f:p=>pct(p.Tn)},
-  {k:'pace',l:'vs 2022',f:p=>paceChip(p)},
+  {k:'chg',l:'Votes vs 2022',f:p=>chgCell(p)},
+  {k:'pace',l:'Pace vs country',f:p=>paceChip(p)},
   {k:'Vf',l:'Votes by 22:00',f:p=>fmt(p.Vf)},
   {k:'split',l:'2022 split',f:p=>`<div class="mini">${stackHTML(p.b,false)}</div>`,ns:1},
   {k:'R',l:'Right',f:p=>fmt(p.b[0]*(1-WASTE[0]))},
@@ -636,13 +641,18 @@ const COLS=[
 function paceVal(p){ // turnout so far / 2022 final, relative to national ratio
   if(!p.k25t||!p.k25E) return null; return (p.Vn25/p.k25E)/(p.k25t)/state.natPace;
 }
+function chgVal(p){ // votes so far / this place's 2022 final votes, in the same boxes
+  if(!p.k25) return null; return p.Vn25/p.k25;
+}
+const sgn=r=>`${r>=1?'+':''}${((r-1)*100).toFixed(0)}%`;
+function chgCell(p){const v=chgVal(p); return v==null?'–':`<span dir="ltr" title="${t('rowTip')(v,state.natPace)}">${sgn(v)}</span>`}
 function paceChip(p){const v=paceVal(p); if(v==null) return '–';
-  const t=Math.max(-1,Math.min(1,(v-1)/0.35)); const c=lerp(css('--mid'),t<0?css('--pace-lo'):css('--pace-hi'),Math.abs(t));
-  return `<span dir="ltr" class="pace" style="background:${c};color:${Math.abs(t)>0.45?'#fff':'var(--ink)'}">${v>=1?'+':''}${((v-1)*100).toFixed(0)}%</span>`}
-const sortKey={name:p=>p.name,E:p=>p.E,pot:p=>p.pot,Tn:p=>p.Tn,pace:p=>paceVal(p)??-9,Vf:p=>p.Vf,proj:p=>p.Vf,R:p=>p.b[0],L:p=>p.b[1],A:p=>p.b[2],worth:p=>p.worth};
+  const m=Math.max(-1,Math.min(1,(v-1)/0.35)); const c=lerp(css('--mid'),m<0?css('--pace-lo'):css('--pace-hi'),Math.abs(m));
+  return `<span dir="ltr" class="pace" title="${t('rowTip')(chgVal(p),state.natPace)}" style="background:${c};color:${Math.abs(m)>0.45?'#fff':'var(--ink)'}">${sgn(v)}</span>`}
+const sortKey={name:p=>p.name,E:p=>p.E,pot:p=>p.pot,Tn:p=>p.Tn,chg:p=>chgVal(p)??-9,pace:p=>paceVal(p)??-9,Vf:p=>p.Vf,proj:p=>p.Vf,R:p=>p.b[0],L:p=>p.b[1],A:p=>p.b[2],worth:p=>p.worth};
 function renderTable(){
   if(!places.length) return;
-  $('thead').innerHTML=COLS.map(c=>`<th scope="col" data-k="${c.k}" ${(state.sort===c.k||(state.sort==='proj'&&c.k==='Vf'))?`aria-sort="${state.dir<0?'descending':'ascending'}"`:''}>${t('cols')[c.k]}${(state.sort===c.k||(state.sort==='proj'&&c.k==='Vf'))?(state.dir<0?' ▾':' ▴'):''}</th>`).join('');
+  $('thead').innerHTML=COLS.map(c=>`<th scope="col" data-k="${c.k}" ${t('tips')[c.k]?`title="${t('tips')[c.k]}"`:''} ${(state.sort===c.k||(state.sort==='proj'&&c.k==='Vf'))?`aria-sort="${state.dir<0?'descending':'ascending'}"`:''}>${t('cols')[c.k]}${(state.sort===c.k||(state.sort==='proj'&&c.k==='Vf'))?(state.dir<0?' ▾':' ▴'):''}</th>`).join('');
   $('thead').querySelectorAll('th').forEach(th=>{const c=COLS.find(c=>c.k===th.dataset.k);if(c.ns)return;th.tabIndex=0;th.onclick=th.onkeydown=e=>{if(e.type==='keydown'&&e.key!=='Enter')return;const k=th.dataset.k;if(state.sort===k||(state.sort==='proj'&&k==='Vf'))state.dir*=-1;else{state.sort=k;state.dir=k==='name'?1:-1}renderTable()}});
   const key=sortKey[state.sort];
   let rows=places.filter(p=>(!state.q||p.name.includes(state.q))&&(!state.pop||p.pop===state.pop));
@@ -650,7 +660,7 @@ function renderTable(){
   const shown=rows.slice(0,150);
   $('tbody').innerHTML=shown.map(p=>`<tr data-n="${p.name.replace(/"/g,'&quot;')}" class="${state.sel===p.name?'sel':''}">${COLS.map(c=>`<td>${c.f(p)}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${COLS.length}" style="text-align:start;white-space:normal">${t('noMatch')(state.q)}</td></tr>`;
   $('tbody').querySelectorAll('tr[data-n]').forEach(tr=>tr.onclick=()=>{state.sel=state.sel===tr.dataset.n?null:tr.dataset.n;renderTable();drawMap()});
-  $('tblNote').textContent=t('tblNote')(rows.length.toLocaleString(),rows.length>150);
+  $('tblNote').textContent=t('tblNote')(rows.length.toLocaleString(),rows.length>150,sgn(state.natPace));
 }
 function drawAll(){ if(D){renderEstimate();renderComp();drawCurve();renderTable();drawMap();} }
 </script>

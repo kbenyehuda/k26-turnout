@@ -360,10 +360,10 @@ function init(d){
   const hour=+hh.slice(0,2);
   state.hh=hh;
   tNow=d.national.turnout/100;
-  const hours=[10,12,14,16,18,20,22]; hourIdx=hours.indexOf(hour);
+  const mins=+hh.slice(3,5); state.hr=hour+mins/60; hourIdx=state.hr>=22?6:0; // hourIdx is now only a 'polls closed' flag
   // reference curves: ratio final / at this hour
   const recent=d.historical.filter(e=>e.knesset>=22);
-  const ratios=recent.map(e=>e.values[6]/e.values[hourIdx]);
+  const ratios=recent.map(e=>e.values[6]/histAt(e.values,state.hr));
   const avg=ratios.reduce((a,b)=>a+b,0)/ratios.length;
   state.ratios={avg}; state.recent=recent;
   recent.forEach((e,i)=>state.ratios[String(e.knesset)]=ratios[i]);
@@ -379,6 +379,9 @@ function init(d){
   bind(); recompute();
 }
 
+// cumulative turnout of a past election at any time of day (linear between the published hours)
+function histAt(values,hr){const H=[7,10,12,14,16,18,20,22],V=[0,...values];
+  if(hr>=22) return V[7]; for(let i=1;i<H.length;i++) if(hr<=H[i]) return V[i-1]+(V[i]-V[i-1])*(hr-H[i-1])/(H[i]-H[i-1]); return V[7];}
 function initRefOptions(){
   const r=state.ratios, lbl=e=>e.knesset===22?(LANG==='he'?'ספטמבר 2019':'Sep 2019'):String(e.year);
   let opts=[['25',t('refLike')('2022',r['25'].toFixed(3))],['avg',t('refAvg')(r.avg.toFixed(3))],
@@ -480,8 +483,8 @@ function stackHTML(vals,labels=true){
 function renderEstimate(){
   const {Tf,nat,totF}=calc, n=D.national;
   $('tNow').textContent=pct(tNow);
-  const h22=D.historical.find(e=>e.knesset===25).values[hourIdx];
-  $('tNowSub').textContent=hourIdx>=0&&hourIdx<6?t('at22h')(h22):'';
+  const h22=histAt(D.historical.find(e=>e.knesset===25).values,state.hr).toFixed(1);
+  $('tNowSub').textContent=hourIdx<6?t('at22h')(h22):'';
   $('tFin').textContent=pct(Tf);
   $('tFinSub').textContent=state.fin!=null?t('setByYou'):t('fin22');
   $('vFin').textContent=fmtK(totF);

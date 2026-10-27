@@ -40,6 +40,8 @@ h2{font-size:21px}
 header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding-bottom:4px;border-bottom:1px solid var(--rule);padding-block:0 16px}
 header p{margin:6px 0 0;max-width:62ch;color:var(--ink-2)}
 .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rule);background:var(--panel);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}
+a.chip{color:inherit;text-decoration:none}
+a.chip:hover{background:var(--tint)}
 .dot{width:8px;height:8px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 3px color-mix(in srgb,#16a34a 25%,transparent)}
 .panel{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:20px;min-width:0}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px}
@@ -117,7 +119,7 @@ footer a{color:var(--ink-2)}
     <h1 data-i18n="h1"></h1>
     <p data-i18n="lede"></p>
   </div>
-  <div class="hdr-right"><div class="seg langseg" role="group" aria-label="Language / שפה"><button id="langHe" lang="he">עברית</button><button id="langEn" lang="en">English</button></div><span class="chip"><span class="dot"></span><span id="asof">…</span></span></div>
+  <div class="hdr-right"><div class="seg langseg" role="group" aria-label="Language / שפה"><button id="langHe" lang="he">עברית</button><button id="langEn" lang="en">English</button></div><span class="chip"><span class="dot"></span><span id="asof">…</span></span><a class="chip" id="coalLink" href="coalition.html" data-i18n="coalLink"></a></div>
 </header>
 
 <section class="panel" aria-labelledby="est-h">
@@ -258,7 +260,7 @@ const $=id=>document.getElementById(id);
 const I18N={
 en:{
  kicker:'Elections to the 26th Knesset · 27 Oct 2026',
- h1:'Turnout, converted to votes',
+ coalLink:'Build a coalition →', h1:'Turnout, converted to votes',
  lede:"Each ballot box's live turnout from the Central Elections Committee, multiplied by how that same box split between the blocs in 2022, adjusted to the 22:00 TV exit polls. Summed up, it estimates where tonight's votes are coming from.",
  estEy:'Final-vote estimate', estH:'Projected votes at 22:00, by bloc',
  tNow:'Turnout now', tFin:'Projected final turnout', vFin:'Projected votes cast',
@@ -301,7 +303,7 @@ en:{
 },
 he:{
  kicker:'הבחירות לכנסת ה-26 · 27.10.2026',
- h1:'אחוזי ההצבעה, מתורגמים לקולות',
+ coalLink:'בנו קואליציה ←', h1:'אחוזי ההצבעה, מתורגמים לקולות',
  lede:'אחוז ההצבעה החי בכל קלפי, לפי ועדת הבחירות המרכזית, מוכפל בחלוקה בין הגושים באותה קלפי בבחירות 2022, מותאמת למדגמי 22:00 של ערוצי הטלוויזיה. הסכום מעריך מאיפה מגיעים הקולות הערב.',
  estEy:'הערכת התוצאה הסופית', estH:'קולות צפויים ב-22:00, לפי גוש',
  tNow:'אחוז הצבעה עכשיו', tFin:'אחוז הצבעה סופי צפוי', vFin:'מספר מצביעים צפוי',
@@ -351,6 +353,7 @@ function applyLang(){
   document.querySelectorAll('[data-i18n-html]').forEach(el=>el.innerHTML=t(el.dataset.i18nHtml));
   document.querySelectorAll('[data-i18n-ph]').forEach(el=>el.placeholder=t(el.dataset.i18nPh));
   $('finStack').setAttribute('aria-label',t('stackAria')); $('map').setAttribute('aria-label',t('mapAria')); $('curve').setAttribute('aria-label',t('curveAria'));
+  $('coalLink').href='coalition.html#'+LANG;
   $('langHe').setAttribute('aria-pressed',he); $('langEn').setAttribute('aria-pressed',!he);
 }
 function setLang(l){LANG=l;try{localStorage.setItem('lang',l)}catch(e){}

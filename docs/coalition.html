@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Build a coalition from the 22:00 exit polls: take seats from the pie, hit 61, and find out whose promises you broke on the way.">
+<title>Build a Coalition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;600;700&display=swap">
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --ink:#14171f; --ink-2:#4b5262; --ink-3:#7c8394; --rule:#dfe2e8; --tint:#eceef3;
+  --ok:#15803d; --warn:#b45309; --bad:#c2410c; --acc:#3b3f4a; --focus:#7c3aed;
+  --f-display:"Frank Ruhl Libre","Times New Roman",serif;
+  --f-body:"Assistant",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121417; --panel:#1a1c20; --ink:#eef0f3; --ink-2:#b7bcc7; --ink-3:#8b91a0; --rule:#2d3139; --tint:#23262c;
+  --ok:#4ade80; --warn:#fbbf24; --bad:#fb923c; --acc:#d6d9e0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121417; --panel:#1a1c20; --ink:#eef0f3; --ink-2:#b7bcc7; --ink-3:#8b91a0; --rule:#2d3139; --tint:#23262c;
+  --ok:#4ade80; --warn:#fbbf24; --bad:#fb923c; --acc:#d6d9e0; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2{font-family:var(--f-display);margin:0;font-weight:700;text-wrap:balance}
+h1{font-size:clamp(28px,4.4vw,42px);line-height:1.05}
+h2{font-size:20px}
+a{color:inherit}
+.muted{color:var(--ink-2)} .small{font-size:13px} .num{font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;border-bottom:1px solid var(--rule);padding-bottom:16px}
+header p{margin:6px 0 0;max-width:62ch;color:var(--ink-2)}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:7px;overflow:hidden}
+.seg button{border:0;background:var(--panel);color:var(--ink-2);padding:6px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--acc);color:var(--bg)}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:20px;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:20px}
+button:focus-visible,input:focus-visible,a:focus-visible,path:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+/* pie */
+.piebox{display:flex;flex-direction:column;align-items:center;gap:10px}
+svg.pie{width:min(100%,340px);height:auto}
+svg.pie path{cursor:pointer;transition:opacity .15s}
+.pie-c1{font-family:var(--f-display);font-weight:900;font-size:30px;fill:var(--ink)}
+.pie-c2{font-size:11px;fill:var(--ink-2)}
+/* meter */
+.meter{position:relative;height:30px;border-radius:6px;background:var(--tint);overflow:hidden;display:flex}
+.meter>div{height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;border-inline-end:1px solid var(--panel)}
+.meter .line{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);border:0}
+.meterwrap{position:relative;padding-top:18px}
+.meterlbl{position:absolute;top:0;font-size:11px;font-weight:700;transform:translateX(-50%)}
+[dir="rtl"] .meterlbl{transform:translateX(50%)}
+.status{font-family:var(--f-display);font-size:24px;font-weight:700;margin:12px 0 4px}
+.status.win{color:var(--ok)}
+/* messages */
+.msg{border:1px solid var(--rule);border-inline-start:4px solid var(--ink-3);border-radius:8px;padding:10px 14px;margin-top:12px;background:var(--panel)}
+.msg.bad{border-inline-start-color:var(--bad)} .msg.warn{border-inline-start-color:var(--warn)} .msg.ok{border-inline-start-color:var(--ok)}
+.msg b{display:block;margin-bottom:2px}
+.msg .src{font-size:12px;color:var(--ink-3);margin-top:4px}
+.toggles{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.toggles label{display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer}
+.toggles input{margin-top:3px}
+/* party cards */
+.parties{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:12px}
+.party{border:1px solid var(--rule);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--panel)}
+.party.in{box-shadow:inset 0 0 0 2px var(--pc)}
+.ptop{display:flex;align-items:center;gap:10px}
+.sw{width:14px;height:14px;border-radius:4px;background:var(--pc);flex:none}
+.pname{font-weight:700} .pleader{font-size:12px;color:var(--ink-3)}
+.pseats{margin-inline-start:auto;font-family:var(--f-display);font-weight:900;font-size:22px}
+.prow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:7px;padding:5px 10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+.btn:disabled{opacity:.4;cursor:default}
+.split{display:flex;align-items:center;gap:6px;font-size:13px}
+.split input{width:56px;font:inherit;padding:3px 6px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--ink)}
+.pnote{font-size:12px;color:var(--ink-2)}
+.legal{font-size:13px;color:var(--ink-2);margin:0}
+/* sources */
+.vlist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.vlist li{border-bottom:1px solid var(--rule);padding-bottom:10px}
+.tag{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;margin-inline-end:6px;color:#fff}
+.tag.veto{background:var(--bad)} .tag.warn{background:var(--warn)}
+.note{font-size:13px;color:var(--ink-3)}
+footer{font-size:13px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <div class="small muted"><a href="./" id="back"></a></div>
+    <h1 id="h1"></h1>
+    <p id="lede"></p>
+  </div>
+  <div class="seg" role="group" aria-label="Language / שפה"><button id="langHe" lang="he">עברית</button><button id="langEn" lang="en">English</button></div>
+</header>
+
+<div class="grid2">
+  <section class="panel piebox">
+    <h2 id="pieH"></h2>
+    <svg class="pie" id="pie" viewBox="0 0 220 220" role="img"></svg>
+    <p class="small muted" id="pieHint" style="margin:0;text-align:center"></p>
+  </section>
+  <section class="panel">
+    <h2 id="coalH"></h2>
+    <div class="status num" id="status" aria-live="polite"></div>
+    <div class="meterwrap"><div class="meterlbl" id="m61"></div><div class="meter" id="meter"></div></div>
+    <div id="msg" aria-live="polite"></div>
+    <div class="toggles">
+      <label><input type="checkbox" id="noBibi"><span id="noBibiL"></span></label>
+      <label><input type="checkbox" id="breakAll"><span id="breakAllL"></span></label>
+    </div>
+    <div class="prow" style="margin-top:14px"><button class="btn" id="reset"></button></div>
+  </section>
+</div>
+
+<section class="panel">
+  <h2 id="partiesH"></h2>
+  <p class="legal" id="legal" style="margin:6px 0 14px"></p>
+  <div class="parties" id="parties"></div>
+</section>
+
+<section class="panel">
+  <h2 id="srcH"></h2>
+  <p class="note" id="srcNote"></p>
+  <ul class="vlist" id="vlist"></ul>
+</section>
+
+<footer id="foot"></footer>
+</div>
+
+<script>
+// Seats per list in the 22:00 exit polls: Kan 11, N12 (updated), N13, Channel 14. Weighted 1/1/1/0.3 like the main page.
+const POLLS=['Kan 11','N12','N13','Channel 14'], PW=[1,1,1,0.3];
+const PARTIES=[
+  {id:'likud',   he:'הליכוד',        en:'Likud',              lhe:'נתניהו',  len:'Netanyahu', c:'#c62f2a', s:[25,24,25,30]},
+  {id:'otzma',   he:'עוצמה יהודית',  en:'Otzma Yehudit',      lhe:'בן גביר', len:'Ben Gvir',  c:'#e0645f', s:[7,6,6,7]},
+  {id:'rz',      he:'הציונות הדתית', en:'Religious Zionism',  lhe:'סמוטריץ׳',len:'Smotrich',  c:'#9c211c', s:[6,6,6,7]},
+  {id:'shas',    he:'ש״ס',           en:'Shas',               lhe:'דרעי',    len:'Deri',      c:'#ee918d', s:[6,8,6,9]},
+  {id:'utj',     he:'יהדות התורה',   en:'UTJ',                lhe:'',        len:'',          c:'#741814', s:[6,6,7,7]},
+  {id:'yashar',  he:'ישר!',          en:'Yashar',             lhe:'איזנקוט', len:'Eisenkot',  c:'#1f63b8', s:[21,22,23,19]},
+  {id:'beyachad',he:'ביחד',          en:'Together',           lhe:'בנט',     len:'Bennett',   c:'#4f95e6', s:[14,12,14,11]},
+  {id:'dem',     he:'הדמוקרטים',     en:'The Democrats',      lhe:'גולן',    len:'Golan',     c:'#163f78', s:[10,10,9,9]},
+  {id:'yb',      he:'ישראל ביתנו',   en:'Yisrael Beytenu',    lhe:'ליברמן',  len:'Liberman',  c:'#8bb9f0', s:[8,8,7,4]},
+  {id:'joint',   he:'הרשימה המשותפת',en:'Joint List',         lhe:'',        len:'',          c:'#138a60', s:[10,11,10,10]},
+  {id:'raam',    he:'רע״ם',          en:'Ra’am',         lhe:'עבאס',    len:'Abbas',     c:'#4cc896', s:[7,7,7,7]},
+];
+// weighted average, rounded by largest remainder so the total stays 120
+(function(){const W=PW.reduce((a,b)=>a+b,0);
+  PARTIES.forEach(p=>{p.avg=p.s.reduce((a,v,i)=>a+v*PW[i],0)/W; p.n=Math.floor(p.avg);});
+  let left=120-PARTIES.reduce((a,p)=>a+p.n,0);
+  [...PARTIES].sort((a,b)=>(b.avg-b.n)-(a.avg-a.n)).slice(0,left).forEach(p=>p.n++);})();
+const P=Object.fromEntries(PARTIES.map(p=>[p.id,p]));
+
+// Stated red lines from the 2026 campaign. lvl 'veto' = explicit pledge (blocks the move), 'warn' = stated opposition or condition.
+// bibi:true = aimed at Netanyahu personally, so it lifts if Likud runs without him.
+const S={ynetLib:['ynet','https://www.ynet.co.il/news/article/bjj0018lpfx'], marker:['TheMarker, 27.10','https://www.themarker.com/news/elections/2026-10-27/ty-article/.premium/000001a1-7784-dc36-a7b3-77ed7e330000'],
+  panet:['Panet, 15.10','https://panet.com/story/4305487'], maarivHaifa:['מעריב','https://www.maariv.co.il/news/elections-2026/article-1375993'],
+  kikar:['כיכר השבת','https://www.kikar.co.il/scoop-news/88574'], kan:['כאן','https://www.kan.org.il/content/kan-news/politic/1100572/'],
+  alj:['Al Jazeera, 25.10','https://www.aljazeera.com/news/2026/10/25/israeli-elections-what-are-the-possible-outcomes'],
+  walla:['וואלה','https://www.walla.co.il/news/israel/383957225'], haaretzB:['הארץ, 11.10','https://www.haaretz.co.il/news/elections/2026-10-11/ty-article/000001a1-2c50-d1b4-a5fb-acdc91f10000'],
+  maarivB:['מעריב, 8.10','https://www.maariv.co.il/news/elections-2026/article-1374844'], ynetB:['ynet','https://www.ynet.co.il/news/120andone/article/s100tqclqmg'],
+  ihB:['ישראל היום, 18.10','https://www.israelhayom.co.il/news/politics/article/21648600'], kanGolan:['כאן','https://www.kan.org.il/tags/generaltags/%D7%99%D7%90%D7%99%D7%A8-%D7%92%D7%95%D7%9C%D7%9F/'],
+  ihBG:['ישראל היום, 20.10','https://www.israelhayom.co.il/news/geopolitics/article/21666357'], ynetJ:['ynet, 25.5','https://www.ynet.co.il/news/article/rjntklbegg']};
+const VETOES=[
+  {a:'yb',b:['shas','utj'],lvl:'veto',who:{he:'ליברמן',en:'Liberman'},
+   he:'ליברמן לא יושב עם החרדים: "לא יהיה פטור לחרדים", וחוק גיוס לכולם יהיה החוק הראשון של הממשלה.',
+   en:'Liberman won’t sit with the Haredi parties: "There will be no exemption for the Haredim", and a draft-for-all law comes first.',src:[S.ynetLib,S.marker]},
+  {a:'yb',b:['likud'],lvl:'veto',bibi:1,who:{he:'ליברמן',en:'Liberman'},
+   he:'ליברמן לא ישב עם נתניהו בשום מצב. הליכוד בלי נתניהו? זה כבר אפשרי מבחינתו.',
+   en:'Liberman will not sit with Netanyahu under any circumstances. Likud without Netanyahu is possible for him.',src:[S.ynetLib,S.panet]},
+  {a:'yb',b:['joint','raam'],lvl:'veto',who:{he:'ליברמן',en:'Liberman'},
+   he:'ליברמן: קואליציה של מפלגות ציוניות בלבד. הוא פסל את עבאס.',
+   en:'Liberman: a coalition of Zionist parties only. He ruled out Abbas.',src:[S.marker,S.maarivHaifa]},
+  {a:'yashar',b:['likud'],lvl:'veto',bibi:1,who:{he:'איזנקוט',en:'Eisenkot'},
+   he:'איזנקוט התחייב לא לשבת בממשלה בראשות נתניהו, גם לא ברוטציה. ("רוטציה לא עומדת על הפרק")',
+   en:'Eisenkot pledged not to sit in a Netanyahu-led government, not even in a rotation. ("Rotation is not on the table")',src:[S.kikar,S.kan]},
+  {a:'yashar',b:['joint','raam'],lvl:'warn',who:{he:'איזנקוט',en:'Eisenkot'},
+   he:'דווח שאיזנקוט שלל ברית עם המפלגות הערביות.',
+   en:'Eisenkot is reported to have ruled out an alliance with the Arab parties.',src:[S.alj]},
+  {a:'beyachad',b:['likud'],lvl:'veto',bibi:1,who:{he:'בנט',en:'Bennett'},
+   he:'בנט על נתניהו: "לא נשב איתו בשום קונסטלציה". (אחרי שחזר בו מאמירה שיסכים למנות אותו לשר.)',
+   en:'Bennett on Netanyahu: "We won’t sit with him in any constellation." (After walking back saying he could serve as a minister.)',src:[S.walla,S.haaretzB]},
+  {a:'beyachad',b:['utj'],lvl:'veto',who:{he:'בנט',en:'Bennett'},
+   he:'בנט: "אני לא יושב עם מפלגה חרדית אנטי-ציונית בממשלה הבאה בשום אופן". (הוא לא נקב בשם. הקישור ליהדות התורה הוא שלנו.)',
+   en:'Bennett: "I am not sitting with an anti-Zionist Haredi party in the next government, in any way." (He named no party; linking it to UTJ is our reading.)',src:[S.maarivB]},
+  {a:'beyachad',b:['shas'],lvl:'warn',who:{he:'בנט',en:'Bennett'},
+   he:'בנט: "הדלת נעולה למי שבעד השתמטות".',
+   en:'Bennett: "The door is locked to whoever supports draft-dodging."',src:[S.ynetB]},
+  {a:'beyachad',b:['joint'],lvl:'warn',who:{he:'בנט',en:'Bennett'},
+   he:'בנט: ממשלה ברוב ציוני גדול, בלי להישען על המפלגות הערביות.',
+   en:'Bennett: a government with a large Zionist majority, not relying on the Arab parties.',src:[S.ynetB]},
+  {a:'beyachad',b:['raam'],lvl:'warn',who:{he:'בנט',en:'Bennett'},
+   he:'בנט: בלי להישען על המפלגות הערביות. אבל על עבאס אמר שהיה "שותף טוב" ושלא יפסול אותו בגלל שהוא ערבי.',
+   en:'Bennett: not relying on the Arab parties. But he called Abbas a "good partner" and won’t rule him out for being Arab.',src:[S.ynetB,S.ihB]},
+  {a:'dem',b:['likud','otzma','rz','shas','utj'],lvl:'veto',who:{he:'גולן',en:'Golan'},
+   he:'גולן: "לא נשב עם אף מפלגה מהקואליציה הנוכחית".',
+   en:'Golan: "We will not sit with any party from the current coalition."',src:[S.kanGolan,S.maarivHaifa]},
+  {a:'otzma',b:['yashar'],lvl:'warn',who:{he:'בן גביר',en:'Ben Gvir'},
+   he:'בן גביר מתנגד לממשלה עם איזנקוט ומעדיף ממשלה של מפלגות הימין.',
+   en:'Ben Gvir opposes a government with Eisenkot and prefers one made of right-wing parties.',src:[S.ihBG]},
+  {a:'joint',b:['otzma','rz'],lvl:'warn',who:{he:'הרשימה המשותפת',en:'The Joint List'},
+   he:'ג׳בארין: "לא נסכים להיות חלק מקואליציה שמבוססת על עליונות יהודית".',
+   en:'Jabareen: "We will not agree to be part of a coalition based on Jewish supremacy."',src:[S.ynetJ]},
+];
+
+const T={
+ he:{h1:'בנו קואליציה',lede:'קחו פרוסות מהעוגה לפי מדגמי 22:00 והגיעו ל-61. כל הבטחה של ראשי המפלגות שתיתקלו בה כאן מגיעה עם מקור.',
+  back:'→ חזרה לאומדן ההצבעה',pieH:'120 המנדטים',pieHint:'לחצו על פרוסה כדי להוסיף מפלגה לקואליציה או להוציא אותה.',
+  coalH:'הקואליציה שלכם',seatsOf:n=>`${n} מתוך 120`,need:n=>`חסרים עוד ${n} מנדטים`,win:(n,b)=>b?`יש ממשלה: ${n} מנדטים. רק ${b===1?'הבטחה אחת נשברה':`${b} הבטחות נשברו`} בדרך.`:`יש ממשלה: ${n} מנדטים, בלי לשבור אף הבטחה!`,
+  empty:'עוד אין אף מפלגה בקואליציה.',m61:'61',of61:'מתוך 61',noBibi:'הליכוד בלי נתניהו (מבטל את הווטו שהוא אישי נגד נתניהו)',breakAll:'הבטחות נועדו להישבר (מאפשר הכול, וסופר כמה הבטחות נשברו)',
+  reset:'להתחיל מחדש',partiesH:'המפלגות',add:'להוסיף',remove:'להוציא',splitB:'לפצל',take:n=>`לקחת ${n} ח״כים`,of:n=>`מתוך ${n}`,
+  inN:(k,n)=>k===n?'בקואליציה':`${k} מתוך ${n} ח״כים בקואליציה (פיצול)`,
+  legal:'אפשר גם לפצל מפלגה ולקחת רק חלק מחברי הכנסת שלה. לפי החוק, סיעה יכולה להתפצל אם לפחות שליש מחבריה פורשים יחד. פורשים בודדים, פחות משליש, לא יכולים להתמנות לשרים או לסגני שרים בכנסת הזאת, ויש מגבלות על הריצה שלהם בבחירות הבאות. בכל מקרה, כל ח״כ יכול להצביע בעד ממשלה.',
+  cant:'אי אפשר!',broke:'נשברה הבטחה:',careful:'שימו לב:',added:p=>`צירפתם את ${p} לקואליציה.`,removed:p=>`הוצאתם את ${p} מהקואליציה.`,
+  splitOk:(k,p,n)=>`פילוג: ${k} ח״כים מ${p} (לפחות שליש מ-${n}). זה פילוג חוקי כסיעה נפרדת, והקווים האדומים של המפלגה לא חלים עליהם.`,
+  splitDef:(k,p,n)=>`${k} פורשים מ${p}: פחות משליש מ-${n} ח״כים. הם יכולים להצביע בעד הממשלה, אבל לא לכהן בה כשרים.`,
+  srcH:'ההבטחות והקווים האדומים',srcNote:'אדום = התחייבות מפורשת (חוסמת את המהלך). כתום = התנגדות או תנאי שהוצהרו (אזהרה בלבד). לא מצאנו התחייבות מפורשת מ-2026 של הליכוד, הציונות הדתית, ש״ס, יהדות התורה או רע״ם לגבי עם מי לא ישבו, ולכן אין להם כאן ווטו משלהם.',
+  veto:'ווטו',warnT:'אזהרה',src:'מקור:',
+  foot:'מנדטים: ממוצע משוקלל של מדגמי 22:00 של כאן 11, חדשות 12 (מעודכן), חדשות 13 (משקל 1 לכל אחד) וערוץ 14 (משקל 0.3), מעוגל כך שהסכום הוא 120. רשימות מתחת לאחוז החסימה (עמך ישראל, המילואימניקים) קיבלו 0 בכל המדגמים. זה משחק, לא תחזית.'},
+ en:{h1:'Build a coalition',lede:'Take slices of the pie by the 22:00 exit polls and reach 61. Every party leader promise you run into comes with a source.',
+  back:'← Back to the turnout estimate',pieH:'The 120 seats',pieHint:'Click a slice to add a party to your coalition, or take it out.',
+  coalH:'Your coalition',seatsOf:n=>`${n} of 120`,need:n=>`${n} more seats needed`,win:(n,b)=>b?`You have a government: ${n} seats. Only ${b===1?'one promise':`${b} promises`} broken on the way.`:`You have a government: ${n} seats, without breaking a single promise!`,
+  empty:'No parties in the coalition yet.',m61:'61',of61:'of 61',noBibi:'Likud without Netanyahu (lifts vetoes aimed at Netanyahu personally)',breakAll:'Promises are made to be broken (allows everything, counts the broken promises)',
+  reset:'Start over',partiesH:'The parties',add:'Add',remove:'Remove',splitB:'Split',take:n=>`Take ${n} MKs`,of:n=>`of ${n}`,
+  inN:(k,n)=>k===n?'In the coalition':`${k} of ${n} MKs in the coalition (split)`,
+  legal:'You can also split a party and take only some of its MKs. By law, a Knesset faction can split if at least a third of its members leave together. Individual defectors, fewer than a third, cannot be appointed ministers or deputy ministers in this Knesset, and face limits on running in the next election. Any MK can still vote for a government.',
+  cant:'You can’t do this!',broke:'Promise broken:',careful:'Heads up:',added:p=>`${p} joined the coalition.`,removed:p=>`${p} left the coalition.`,
+  splitOk:(k,p,n)=>`Split: ${k} MKs from ${p} (at least a third of ${n}). That is legal as a separate faction, and the party’s vetoes don’t bind them.`,
+  splitDef:(k,p,n)=>`${k} defectors from ${p}: fewer than a third of ${n}. They can vote for the government but cannot serve in it as ministers.`,
+  srcH:'The promises and red lines',srcNote:'Red = explicit pledge (blocks the move). Orange = stated opposition or condition (warning only). We found no explicit 2026 pledge from Likud, Religious Zionism, Shas, UTJ or Ra’am about whom they won’t sit with, so they have no vetoes of their own here.',
+  veto:'Veto',warnT:'Warning',src:'Source:',
+  foot:'Seats: weighted average of the 22:00 exit polls of Kan 11, N12 (updated), N13 (weight 1 each) and Channel 14 (weight 0.3), rounded so the total is 120. Lists below the threshold (Amcha Yisrael, the Reservists) got 0 in every exit poll. This is a game, not a forecast.'}
+};
+let LANG='he'; try{const h=location.hash.slice(1); LANG=h==='en'||h==='he'?h:(localStorage.getItem('lang')||'he')}catch(e){}
+const t=k=>T[LANG][k]; const $=id=>document.getElementById(id);
+const nm=p=>LANG==='he'?p.he:p.en;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const st={k:{},broken:new Set()}; // k[id] = MKs of that party in the coalition
+let lastMsg=null;
+
+function full(id){return st.k[id]===P[id].n}
+function conflicts(id){ // red lines between party id (whole) and whole parties already in
+  const out=[];
+  for(const v of VETOES){
+    if(v.bibi&&$('noBibi').checked) continue;
+    const pair=(v.a===id&&v.b.some(b=>b!==id&&full(b)))||(v.b.includes(id)&&full(v.a));
+    if(pair) out.push(v);
+  }
+  return out;
+}
+function vText(v){return `${esc(v[LANG])}<div class="src">${t('src')} ${v.src.map(s=>`<a href="${s[1]}" target="_blank" rel="noopener">${esc(s[0])}</a>`).join(' · ')}</div>`}
+function setK(id,k){
+  const p=P[id]; k=Math.max(0,Math.min(p.n,k)); const was=st.k[id]||0;
+  if(k===0){delete st.k[id]; for(const v of VETOES) if(v.a===id||v.b.includes(id)) st.broken.delete(v); lastMsg={cls:'',html:esc(t('removed')(nm(p)))}; return render();}
+  if(k<p.n){ // a split: the party's red lines don't bind the group
+    st.k[id]=k; const legal=k>=Math.ceil(p.n/3);
+    lastMsg={cls:legal?'ok':'warn',html:esc((legal?t('splitOk'):t('splitDef'))(k,nm(p),p.n))}; return render();}
+  const cs=conflicts(id), vetoes=cs.filter(v=>v.lvl==='veto'), warns=cs.filter(v=>v.lvl==='warn');
+  if(vetoes.length&&!$('breakAll').checked){
+    lastMsg={cls:'bad',html:`<b>${t('cant')}</b>${vetoes.map(vText).join('<hr style="border:0;border-top:1px solid var(--rule)">')}`}; return render();}
+  st.k[id]=k; vetoes.forEach(v=>st.broken.add(v));
+  const parts=[`<b>${esc(t('added')(nm(p)))}</b>`];
+  if(vetoes.length) parts.push(`<b style="color:var(--bad)">${t('broke')}</b>`+vetoes.map(vText).join('<br>'));
+  if(warns.length) parts.push(`<b style="color:var(--warn)">${t('careful')}</b>`+warns.map(vText).join('<br>'));
+  lastMsg={cls:vetoes.length?'bad':warns.length?'warn':'ok',html:parts.join('')};
+  render();
+}
+function toggle(id){ if(st.k[id]) setK(id,0); else setK(id,P[id].n); }
+
+function arc(cx,cy,r0,r1,a0,a1){const p=(r,a)=>[cx+r*Math.sin(a),cy-r*Math.cos(a)].map(v=>v.toFixed(2)).join(' ');
+  const L=a1-a0>Math.PI?1:0; return `M${p(r1,a0)}A${r1} ${r1} 0 ${L} 1 ${p(r1,a1)}L${p(r0,a1)}A${r0} ${r0} 0 ${L} 0 ${p(r0,a0)}Z`;}
+function drawPie(total){
+  let a=0, g=''; const dir=LANG==='he'?-1:1, A=s=>dir*s/120*2*Math.PI;
+  for(const p of PARTIES){
+    const k=st.k[p.id]||0;
+    for(const [n,on] of [[k,1],[p.n-k,0]]){ if(!n) continue;
+      const a0=A(a), a1=A(a+n), lo=Math.min(a0,a1), hi=Math.max(a0,a1), r1=on?104:96;
+      g+=`<path d="${arc(110,110,on?60:62,r1,lo,hi)}" fill="${p.c}" opacity="${on?1:.28}" stroke="var(--panel)" stroke-width="1.5" data-id="${p.id}" tabindex="0" role="button" aria-label="${esc(nm(p))}: ${p.n}"><title>${esc(nm(p))} · ${p.n}</title></path>`;
+      a+=n; }
+  }
+  g+=`<text x="110" y="112" text-anchor="middle" class="pie-c1">${total}</text><text x="110" y="132" text-anchor="middle" class="pie-c2">${t('of61')}</text>`;
+  $('pie').innerHTML=g; $('pie').setAttribute('aria-label',t('pieH'));
+  $('pie').querySelectorAll('path').forEach(el=>{el.onclick=()=>toggle(el.dataset.id); el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle(el.dataset.id)}}});
+}
+function render(){
+  const total=PARTIES.reduce((a,p)=>a+(st.k[p.id]||0),0);
+  drawPie(total);
+  $('meter').innerHTML=PARTIES.filter(p=>st.k[p.id]).map(p=>`<div style="flex:0 0 ${st.k[p.id]/120*100}%;background:${p.c}" title="${esc(nm(p))}: ${st.k[p.id]}">${st.k[p.id]>=4?st.k[p.id]:''}</div>`).join('')+`<div class="line" style="inset-inline-start:${61/120*100}%"></div>`;
+  $('m61').style.insetInlineStart=`${61/120*100}%`; $('m61').textContent=t('m61');
+  const s=$('status'); s.className='status num'+(total>=61?' win':'');
+  s.textContent=total>=61?t('win')(total,st.broken.size):total?`${t('seatsOf')(total)} · ${t('need')(61-total)}`:t('empty');
+  $('msg').innerHTML=lastMsg?`<div class="msg ${lastMsg.cls}">${lastMsg.html}</div>`:'';
+  $('parties').innerHTML=PARTIES.map(p=>{const k=st.k[p.id]||0;
+    return `<div class="party${k?' in':''}" style="--pc:${p.c}">
+      <div class="ptop"><span class="sw"></span><div><div class="pname">${esc(nm(p))}</div><div class="pleader">${esc(LANG==='he'?p.lhe:p.len)}</div></div><div class="pseats num">${p.n}</div></div>
+      <div class="prow"><button class="btn${k?'':' primary'}" data-act="toggle" data-id="${p.id}">${k?t('remove'):t('add')}</button>
+        <span class="split"><button class="btn" data-act="split" data-id="${p.id}">${t('splitB')}</button>
+        <input type="number" min="1" max="${p.n}" value="${k&&k<p.n?k:Math.ceil(p.n/3)}" data-id="${p.id}" aria-label="${esc(nm(p))}"><span class="muted">${t('of')(p.n)}</span></span></div>
+      ${k?`<div class="pnote">${esc(t('inN')(k,p.n))}</div>`:''}</div>`}).join('');
+  $('parties').querySelectorAll('button[data-act]').forEach(b=>b.onclick=()=>{const id=b.dataset.id;
+    if(b.dataset.act==='toggle') toggle(id); else setK(id,+$('parties').querySelector(`input[data-id="${id}"]`).value||1);});
+}
+function renderStatic(){
+  document.documentElement.lang=LANG; document.documentElement.dir=LANG==='he'?'rtl':'ltr';
+  for(const k of ['h1','lede','back','pieH','pieHint','coalH','reset','partiesH','legal','srcH','srcNote','foot']) $(k).textContent=t(k);
+  $('noBibiL').textContent=t('noBibi'); $('breakAllL').textContent=t('breakAll');
+  $('langHe').setAttribute('aria-pressed',LANG==='he'); $('langEn').setAttribute('aria-pressed',LANG==='en');
+  $('back').href='./#'+LANG;
+  $('vlist').innerHTML=VETOES.map(v=>`<li><span class="tag ${v.lvl}">${v.lvl==='veto'?t('veto'):t('warnT')}</span><b>${esc(v.who[LANG])}</b> ✗ ${v.b.map(b=>esc(nm(P[b]))).join(', ')}<div style="margin-top:4px">${vText(v)}</div></li>`).join('');
+  render();
+}
+function setLang(l){LANG=l; try{localStorage.setItem('lang',l); history.replaceState(null,'','#'+l)}catch(e){} lastMsg=null; renderStatic();}
+$('langHe').onclick=()=>setLang('he'); $('langEn').onclick=()=>setLang('en');
+$('reset').onclick=()=>{st.k={}; st.broken.clear(); lastMsg=null; render();};
+$('noBibi').onchange=()=>{ if($('noBibi').checked) for(const v of [...st.broken]) if(v.bibi) st.broken.delete(v); render(); };
+$('breakAll').onchange=()=>render();
+renderStatic();
+</script>
+</body>
+</html>

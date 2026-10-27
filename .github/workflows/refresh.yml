@@ -1,0 +1,41 @@
+name: Refresh turnout data
+
+on:
+  schedule:
+    - cron: "*/10 5-22 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download source data (Kolot Nodedim, CC BY-NC-SA 4.0)
+        run: |
+          set -euo pipefail
+          BASE=https://raw.githubusercontent.com/harelc/elections-vote-transfer/main
+          mkdir -p src/site/data
+          curl -fsSL "$BASE/ballot25.csv" -o src/ballot25.csv
+          curl -fsSL "$BASE/site/data/turnout_day_26.json" -o src/site/data/turnout_day_26.json
+          curl -fsSL "$BASE/site/data/historical_turnout.json" -o src/site/data/historical_turnout.json
+
+      - name: Build data.json
+        run: python3 -I scripts/prep.py src docs/data.json
+
+      - name: Commit if changed
+        run: |
+          rm -rf src
+          if git diff --quiet docs/data.json; then echo "No new snapshot"; exit 0; fi
+          git config user.name "turnout-bot"
+          git config user.email "turnout-bot@users.noreply.github.com"
+          git add docs/data.json
+          git commit -m "Turnout snapshot $(python3 -c "import json;print(json.load(open('docs/data.json'))['as_of'])")"
+          git push

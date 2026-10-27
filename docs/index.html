@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Live CEC turnout per ballot box, scaled to the final TV polls, projected to a final vote and seat estimate.">
+<meta name="description" content="Live CEC turnout per ballot box, scaled to the 22:00 TV exit polls, projected to a final vote and seat estimate.">
 <meta property="og:title" content="K26 Turnout Estimator">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>K26 Turnout Estimator</title>
@@ -221,7 +221,7 @@ footer a{color:var(--ink-2)}
 <footer data-i18n-html="footer">
   Turnout: Central Elections Committee, per ballot box, via the open
   <a href="https://github.com/harelc/elections-vote-transfer" target="_blank" rel="noopener">Kolot Nodedim</a> pipeline (each 2026 box matched to its 2022 twin).
-  2022 split: CEC ballot-box results. Poll scaling: final polls of Kan 11, Channel 12 and Channel 13 (23 Oct, weight 1 each) and Channel 14 (22 Oct, weight 0.3); weighted average: Netanyahu bloc 51.1 · change bloc 53.1 · Arab parties 14.6 · other 1.2. The change bloc includes Beyachad (Bennett) and Yisrael Beiteinu.
+  2022 split: CEC ballot-box results. Poll scaling: 22:00 exit polls of Kan 11, Channel 12 and Channel 13 (weight 1 each) and Channel 14 (weight 0.3); weighted average: Netanyahu bloc 50.9 · change bloc 51.8 · Arab parties 17.3 · other 0 (the Reservists and the Winter list are below the threshold in all four). The change bloc includes Beyachad (Bennett) and Yisrael Beiteinu.
   Station feeds lag the national total, so box-level voters are scaled up to the CEC national figure. This is an estimate from turnout only; no votes have been counted.
 </footer>
 </div>
@@ -233,15 +233,15 @@ const BLOCS=[
   {k:'A',letters:'עם · ום · ד',css:'--a'},
   {k:'O',letters:null,css:'--o'}];
 BLOCS.forEach((B,i)=>Object.defineProperty(B,'name',{get:()=>t('blocs')[i]}));
-// Vote-share targets (%), converted from the final TV polls (Kan 11, N12, N13 weight 1; Channel 14 weight 0.3),
-// counting lists the polls showed below the 3.25% threshold.
+// Vote-share targets (%), converted from the 22:00 TV exit polls (Kan 11, N12, N13 weight 1; Channel 14 weight 0.3),
+// counting lists below the 3.25% threshold (their vote shares kept from the final pre-election polls; exit polls give seats only).
 const TARGETS={
-  corrected:[43.48, 37.92, 14.20, 4.40], // 2022 result x (2026 polls / 2022 final polls)
-  published:[43.80, 41.70, 11.47, 3.03]  // 2026 polls as published
+  corrected:[42.68, 36.39, 16.55, 4.37], // exit polls x (2022 result / 2022 final polls), renormalized
+  published:[43.26, 40.26, 13.45, 3.03]  // 2026 exit polls as published
 };
 // share of each bloc's votes that the 2026 polls put on lists below the threshold
-// Winter's list ~2.83% and the Haredi list ~0.83% of the vote, out of the Netanyahu bloc's ~43.8% in the 2026 polls
-const WASTE_ALL=[0.084,0,0], WASTE_WINTER_IN=[0.019,0,0];
+// Winter's list ~2.83% and the Haredi list ~0.83% of the vote, out of the Netanyahu bloc's ~43.3% in the exit polls
+const WASTE_ALL=[0.085,0,0], WASTE_WINTER_IN=[0.019,0,0];
 let WASTE=WASTE_ALL;
 const fmt=n=>Math.round(n).toLocaleString('en-US');
 const fmtK=n=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e4?Math.round(n/1e3)+'K':fmt(n);
@@ -252,11 +252,11 @@ const I18N={
 en:{
  kicker:'Elections to the 26th Knesset · 27 Oct 2026',
  h1:'Turnout, converted to votes',
- lede:"Each ballot box's live turnout from the Central Elections Committee, multiplied by how that same box split between the blocs in 2022, adjusted to the final TV polls. Summed up, it estimates where tonight's votes are coming from.",
+ lede:"Each ballot box's live turnout from the Central Elections Committee, multiplied by how that same box split between the blocs in 2022, adjusted to the 22:00 TV exit polls. Summed up, it estimates where tonight's votes are coming from.",
  estEy:'Final-vote estimate', estH:'Projected votes at 22:00, by bloc',
  tNow:'Turnout now', tFin:'Projected final turnout', vFin:'Projected votes cast',
  refL:'End-of-day curve', refS:'how the last hours usually go',
- finL:'Final turnout', finReset:'Reset to curve', zReset:'Whole country', winterL:"Winter's list (Amcha)", wOut:'Below threshold', wIn:'Passes', winterNote:'Polled at 2.5–3.1% in the final polls; the threshold is 3.25%. If it passes, its votes (about 4 seats) count for the Netanyahu bloc.', auto:'auto',
+ finL:'Final turnout', finReset:'Reset to curve', zReset:'Whole country', winterL:"Winter's list (Amcha)", wOut:'Below threshold', wIn:'Passes', winterNote:'Below the 3.25% threshold in all four 22:00 exit polls (2.5–3.1% in the final pre-election polls). If it passes, its votes (about 4 seats) count for the Netanyahu bloc.', auto:'auto',
  modeL:'Who each box votes for', mode25:'Same as 2022', modePoll:'Scaled to TV polls', pmCor:'Corrected for 2022 poll miss', pmPub:'As published',
  swingL:'Swing Netanyahu bloc → change bloc',
  seatNote:'Seat figures divide 120 seats among the three blocs in proportion to their votes. Votes the polls put on lists below the threshold (about 8% of the Netanyahu bloc vote, mostly Winter\'s list and the Haredi list) are left out; otherwise they ignore the threshold and surplus agreements, so read them as a direction, not a count. Blocs follow 2022 party lines: Yisrael Beiteinu sits with center-left; Ha-Bayit Ha-Yehudi and parties that missed the threshold are "Other".',
@@ -267,14 +267,14 @@ en:{
  tblEy:'By place', tblH:'Potential, turnout and projected votes',
  search:'Search a city or town (Hebrew)',
  popAll:'All places', popJ:'Jewish', popM:'Mixed cities', popA:'Arab', popB:'Bedouin', popD:'Druze',
- footer:'Turnout: Central Elections Committee, per ballot box, via the open <a href="https://github.com/harelc/elections-vote-transfer" target="_blank" rel="noopener">Kolot Nodedim</a> pipeline (each 2026 box matched to its 2022 twin). 2022 split: CEC ballot-box results. Poll scaling: final polls of Kan 11, Channel 12 and Channel 13 (23 Oct, weight 1 each) and Channel 14 (22 Oct, weight 0.3); weighted average: Netanyahu bloc 51.1 · change bloc 53.1 · Arab parties 14.6 · other 1.2. The change bloc includes Beyachad (Bennett) and Yisrael Beiteinu. Station feeds lag the national total, so box-level voters are scaled up to the CEC national figure. This is an estimate from turnout only; no votes have been counted. Licensed CC BY-NC-SA 4.0.',
+ footer:'Turnout: Central Elections Committee, per ballot box, via the open <a href="https://github.com/harelc/elections-vote-transfer" target="_blank" rel="noopener">Kolot Nodedim</a> pipeline (each 2026 box matched to its 2022 twin). 2022 split: CEC ballot-box results. Poll scaling: 22:00 exit polls of Kan 11, Channel 12 and Channel 13 (weight 1 each) and Channel 14 (weight 0.3); weighted average: Netanyahu bloc 50.9 · change bloc 51.8 · Arab parties 17.3 · other 0 (the Reservists and the Winter list are below the threshold in all four). The change bloc includes Beyachad (Bennett) and Yisrael Beiteinu. Station feeds lag the national total, so box-level voters are scaled up to the CEC national figure. This is an estimate from turnout only; no votes have been counted. Licensed CC BY-NC-SA 4.0.',
  blocs:['Netanyahu bloc','Change bloc','Arab parties','Other / below threshold'], blocShort:['Netanyahu','Change','Arab'],
  lettersPre:'2022: ', belowThr:'incl. lists below the threshold',
  asof:(hh,t)=>`CEC turnout as of ${hh} · ${t}%`, loadErr:m=>'Could not load data: '+m,
  refLike:(l,r)=>`Like ${l} (×${r})`, refAvg:r=>`Average 2019–2022 (×${r})`, refFinal:'Polls closed: final figure',
  at22h:v=>`2022 at this hour: ${v}%`, setByYou:'set by you', fin22:'2022 final: 70.6%',
  ofVotes:'of votes', envNote:n=>`Includes about ${n} double-envelope votes (soldiers, diplomats, hospital patients and others). They aren't in the ballot-box feed and are counted after the polls close, so they're projected from 2022.`, oppTotal:'Change bloc + Arab parties:', seatEq:'Seat equivalent:', needs61:'A majority needs <b>61</b>',
- modePollNote:w=>state.pm==='corrected'?`The final 2022 polls overrated the center-left by about 3.3 points and underrated the Arab parties by about 2.2. This assumes the 2026 polls miss the same way: each bloc's 2022 result is multiplied by (2026 polls ÷ 2022 final polls), giving vote-share targets of 43.5 · 37.9 · 14.2 · 4.4 (Netanyahu · change · Arab · other). Each box keeps its 2022 lean, with one multiplier per bloc (×${w[0].toFixed(2)} · ×${w[1].toFixed(2)} · ×${w[2].toFixed(2)} · ×${w[3].toFixed(2)}) set so that at 2022 turnout the country hits those targets. Tonight's turnout is applied on top.`:`The 2026 polls at face value, converted from seats to votes (including lists polling below the threshold): 43.8 · 41.7 · 11.5 · 3.0 (Netanyahu · change · Arab · other). Multipliers ×${w[0].toFixed(2)} · ×${w[1].toFixed(2)} · ×${w[2].toFixed(2)} · ×${w[3].toFixed(2)}, set so that at 2022 turnout the country hits those targets. Tonight's turnout is applied on top.`,
+ modePollNote:w=>state.pm==='corrected'?`The final 2022 polls overrated the center-left by about 3.3 points and underrated the Arab parties by about 2.2. This assumes tonight's exit polls miss the same way: each bloc's exit-poll share is multiplied by (2022 result ÷ 2022 final polls), giving vote-share targets of 42.7 · 36.4 · 16.6 · 4.4 (Netanyahu · change · Arab · other). Each box keeps its 2022 lean, with one multiplier per bloc (×${w[0].toFixed(2)} · ×${w[1].toFixed(2)} · ×${w[2].toFixed(2)} · ×${w[3].toFixed(2)}) set so that at 2022 turnout the country hits those targets. Tonight's turnout is applied on top.`:`Tonight's exit polls at face value, converted from seats to votes (including lists below the threshold): 43.3 · 40.3 · 13.4 · 3.0 (Netanyahu · change · Arab · other). Multipliers ×${w[0].toFixed(2)} · ×${w[1].toFixed(2)} · ×${w[2].toFixed(2)} · ×${w[3].toFixed(2)}, set so that at 2022 turnout the country hits those targets. Tonight's turnout is applied on top.`,
  mode25Note:'Each box splits exactly as its 2022 twin did.',
  rows:['Poll target (votes)','Voted so far','All eligible'],
  compNote:d=>{const f=v=>`${v>=0?'+':'−'}${Math.abs(v).toFixed(1)}`;return `Compared with the poll target, today's voters so far lean Netanyahu bloc ${f(d[0])}, change bloc ${f(d[1])}, Arab parties ${f(d[2])} points. The difference is who is turning out, measured box by box.`},
@@ -295,11 +295,11 @@ en:{
 he:{
  kicker:'הבחירות לכנסת ה-26 · 27.10.2026',
  h1:'אחוזי ההצבעה, מתורגמים לקולות',
- lede:'אחוז ההצבעה החי בכל קלפי, לפי ועדת הבחירות המרכזית, מוכפל בחלוקה בין הגושים באותה קלפי בבחירות 2022, מותאמת לסקרים האחרונים של ערוצי הטלוויזיה. הסכום מעריך מאיפה מגיעים הקולות הערב.',
+ lede:'אחוז ההצבעה החי בכל קלפי, לפי ועדת הבחירות המרכזית, מוכפל בחלוקה בין הגושים באותה קלפי בבחירות 2022, מותאמת למדגמי 22:00 של ערוצי הטלוויזיה. הסכום מעריך מאיפה מגיעים הקולות הערב.',
  estEy:'הערכת התוצאה הסופית', estH:'קולות צפויים ב-22:00, לפי גוש',
  tNow:'אחוז הצבעה עכשיו', tFin:'אחוז הצבעה סופי צפוי', vFin:'מספר מצביעים צפוי',
  refL:'עקומת סוף היום', refS:'איך נראות בדרך כלל השעות האחרונות',
- finL:'אחוז הצבעה סופי', finReset:'חזרה לעקומה', zReset:'כל הארץ', winterL:'רשימת וינטר (עמך)', wOut:'לא עוברת', wIn:'עוברת', winterNote:'קיבלה 2.5%–3.1% בסקרים האחרונים; אחוז החסימה הוא 3.25%. אם היא עוברת, הקולות שלה (כ-4 מנדטים) נספרים לגוש נתניהו.', auto:'אוטומטי',
+ finL:'אחוז הצבעה סופי', finReset:'חזרה לעקומה', zReset:'כל הארץ', winterL:'רשימת וינטר (עמך)', wOut:'לא עוברת', wIn:'עוברת', winterNote:'מתחת לאחוז החסימה (3.25%) בכל ארבעת מדגמי 22:00 (2.5%–3.1% בסקרים האחרונים לפני הבחירות). אם היא עוברת, הקולות שלה (כ-4 מנדטים) נספרים לגוש נתניהו.', auto:'אוטומטי',
  modeL:'למי מצביעים בכל קלפי', mode25:'כמו ב-2022', modePoll:'מותאם לסקרי הערוצים', pmCor:'מתוקן לפי הטעות ב-2022', pmPub:'כפי שפורסמו',
  swingL:'מעבר מגוש נתניהו לגוש השינוי',
  seatNote:'המנדטים מחולקים בין שלושת הגושים לפי היחס בין הקולות שלהם. קולות שהסקרים שמים ברשימות מתחת לאחוז החסימה (כ-8% מקולות גוש נתניהו, בעיקר רשימת וינטר והרשימה החרדית) לא נספרים; מעבר לזה החישוב מתעלם מאחוז החסימה ומהסכמי עודפים, ולכן הוא מראה כיוון ולא ספירה. הגושים לפי מפת המפלגות של 2022: ישראל ביתנו במרכז-שמאל; הבית היהודי ומפלגות שלא עברו את אחוז החסימה נספרים כ"אחר".',
@@ -310,14 +310,14 @@ he:{
  tblEy:'לפי יישוב', tblH:'פוטנציאל, אחוז הצבעה וקולות צפויים',
  search:'חיפוש עיר או יישוב',
  popAll:'כל היישובים', popJ:'יהודי', popM:'ערים מעורבות', popA:'ערבי', popB:'בדואי', popD:'דרוזי',
- footer:'אחוזי הצבעה: ועדת הבחירות המרכזית, לפי קלפי, דרך פרויקט הקוד הפתוח <a href="https://github.com/harelc/elections-vote-transfer" target="_blank" rel="noopener">קולות נודדים</a> (כל קלפי ב-2026 מותאמת לקלפי התאומה שלה ב-2022). החלוקה ב-2022: תוצאות ועדת הבחירות לפי קלפי. ההתאמה לסקרים: הסקרים האחרונים של כאן 11, חדשות 12 וחדשות 13 (23.10, משקל 1 לכל אחד) וערוץ 14 (22.10, משקל 0.3); ממוצע משוקלל: גוש נתניהו 51.1 · גוש השינוי 53.1 · מפלגות ערביות 14.6 · אחר 1.2. גוש השינוי כולל את ביחד (בנט) ואת ישראל ביתנו. הנתונים ברמת הקלפי מתעדכנים לאט יותר מהסכום הארצי, ולכן הם מוגדלים כך שיתאימו למספר הארצי של ועדת הבחירות. זוהי הערכה על סמך אחוזי הצבעה בלבד; עדיין לא נספר אף קול. רישיון CC BY-NC-SA 4.0.',
+ footer:'אחוזי הצבעה: ועדת הבחירות המרכזית, לפי קלפי, דרך פרויקט הקוד הפתוח <a href="https://github.com/harelc/elections-vote-transfer" target="_blank" rel="noopener">קולות נודדים</a> (כל קלפי ב-2026 מותאמת לקלפי התאומה שלה ב-2022). החלוקה ב-2022: תוצאות ועדת הבחירות לפי קלפי. ההתאמה לסקרים: מדגמי 22:00 של כאן 11, חדשות 12 וחדשות 13 (משקל 1 לכל אחד) וערוץ 14 (משקל 0.3); ממוצע משוקלל: גוש נתניהו 50.9 · גוש השינוי 51.8 · מפלגות ערביות 17.3 · אחר 0 (המילואימניקים ורשימת וינטר מתחת לאחוז החסימה בכל הארבעה). גוש השינוי כולל את ביחד (בנט) ואת ישראל ביתנו. הנתונים ברמת הקלפי מתעדכנים לאט יותר מהסכום הארצי, ולכן הם מוגדלים כך שיתאימו למספר הארצי של ועדת הבחירות. זוהי הערכה על סמך אחוזי הצבעה בלבד; עדיין לא נספר אף קול. רישיון CC BY-NC-SA 4.0.',
  blocs:['גוש נתניהו','גוש השינוי','המפלגות הערביות','אחר / מתחת לאחוז החסימה'], blocShort:['נתניהו','שינוי','ערבים'],
  lettersPre:'2022: ', belowThr:'כולל רשימות מתחת לאחוז החסימה',
  asof:(hh,t)=>`ועדת הבחירות, נכון ל-${hh} · ${t}%`, loadErr:m=>'טעינת הנתונים נכשלה: '+m,
  refLike:(l,r)=>`כמו ב-${l} (×${r})`, refAvg:r=>`ממוצע 2019–2022 (×${r})`, refFinal:'הקלפיות נסגרו: נתון סופי',
  at22h:v=>`ב-2022 באותה שעה: ${v}%`, setByYou:'נקבע ידנית', fin22:'סופי ב-2022: 70.6%',
  ofVotes:'מהקולות', envNote:n=>`כולל כ-${n} קולות במעטפות כפולות (חיילים, דיפלומטים, מאושפזים ואחרים). הם לא מופיעים בנתוני הקלפיות ונספרים אחרי סגירת הקלפיות, ולכן הם מוערכים לפי 2022.`, oppTotal:'גוש השינוי + מפלגות ערביות:', seatEq:'שווה ערך במנדטים:', needs61:'רוב דורש <b>61</b>',
- modePollNote:w=>state.pm==='corrected'?`הסקרים האחרונים של 2022 הגזימו בכוח של מרכז-שמאל בכ-3.3 נקודות והמעיטו בכוח של המפלגות הערביות בכ-2.2. כאן ההנחה היא שגם סקרי 2026 טועים באותו כיוון: התוצאה של כל גוש ב-2022 מוכפלת ב(סקרי 2026 ÷ סקרי 2022 האחרונים), וכך מתקבלים יעדי אחוזי קולות של 43.5 · 37.9 · 14.2 · 4.4 (נתניהו · שינוי · ערבים · אחר). כל קלפי שומרת על הנטייה שלה מ-2022, עם מכפיל אחד לכל גוש (×${w[0].toFixed(2)} · ×${w[1].toFixed(2)} · ×${w[2].toFixed(2)} · ×${w[3].toFixed(2)}) שנקבע כך שבאחוזי הצבעה של 2022 הארץ מגיעה ליעדים. אחוזי ההצבעה של הערב מוחלים מעל זה.`:`סקרי 2026 כפי שפורסמו, מומרים ממנדטים לקולות (כולל רשימות שמתחת לאחוז החסימה): 43.8 · 41.7 · 11.5 · 3.0 (נתניהו · שינוי · ערבים · אחר). מכפילים ×${w[0].toFixed(2)} · ×${w[1].toFixed(2)} · ×${w[2].toFixed(2)} · ×${w[3].toFixed(2)}, שנקבעו כך שבאחוזי הצבעה של 2022 הארץ מגיעה ליעדים. אחוזי ההצבעה של הערב מוחלים מעל זה.`,
+ modePollNote:w=>state.pm==='corrected'?`הסקרים האחרונים של 2022 הגזימו בכוח של מרכז-שמאל בכ-3.3 נקודות והמעיטו בכוח של המפלגות הערביות בכ-2.2. כאן ההנחה היא שגם מדגמי הערב טועים באותו כיוון: החלק של כל גוש במדגמים מוכפל ב(התוצאה ב-2022 ÷ סקרי 2022 האחרונים), וכך מתקבלים יעדי אחוזי קולות של 42.7 · 36.4 · 16.6 · 4.4 (נתניהו · שינוי · ערבים · אחר). כל קלפי שומרת על הנטייה שלה מ-2022, עם מכפיל אחד לכל גוש (×${w[0].toFixed(2)} · ×${w[1].toFixed(2)} · ×${w[2].toFixed(2)} · ×${w[3].toFixed(2)}) שנקבע כך שבאחוזי הצבעה של 2022 הארץ מגיעה ליעדים. אחוזי ההצבעה של הערב מוחלים מעל זה.`:`מדגמי הערב כפי שפורסמו, מומרים ממנדטים לקולות (כולל רשימות שמתחת לאחוז החסימה): 43.3 · 40.3 · 13.4 · 3.0 (נתניהו · שינוי · ערבים · אחר). מכפילים ×${w[0].toFixed(2)} · ×${w[1].toFixed(2)} · ×${w[2].toFixed(2)} · ×${w[3].toFixed(2)}, שנקבעו כך שבאחוזי הצבעה של 2022 הארץ מגיעה ליעדים. אחוזי ההצבעה של הערב מוחלים מעל זה.`,
  mode25Note:'כל קלפי מתחלקת בדיוק כמו קלפי התאומה שלה ב-2022.',
  rows:['יעד לפי הסקרים (קולות)','הצביעו עד עכשיו','כל בעלי זכות הבחירה'],
  compNote:d=>{const f=v=>`${v>=0?'+':'−'}${Math.abs(v).toFixed(1)}`;return `לעומת היעד לפי הסקרים, המצביעים עד עכשיו: גוש נתניהו ${f(d[0])}, גוש השינוי ${f(d[1])}, המפלגות הערביות ${f(d[2])} נקודות. ההבדל נובע ממי שיוצא להצביע, קלפי אחר קלפי.`},

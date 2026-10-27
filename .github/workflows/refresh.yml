@@ -23,19 +23,22 @@ jobs:
           set -euo pipefail
           BASE=https://raw.githubusercontent.com/harelc/elections-vote-transfer/master
           mkdir -p src/site/data
-          curl -fsSL "$BASE/ballot25.csv" -o src/ballot25.csv
-          curl -fsSL "$BASE/site/data/turnout_day_26.json" -o src/site/data/turnout_day_26.json
-          curl -fsSL "$BASE/site/data/historical_turnout.json" -o src/site/data/historical_turnout.json
+          for p in ballot25.csv site/data/turnout_day_26.json site/data/historical_turnout.json; do
+            echo "Downloading $BASE/$p"
+            curl -fsSL --retry 3 "$BASE/$p" -o "src/$p"
+          done
 
       - name: Build data.json
         run: python3 -I scripts/prep.py src docs/data.json
 
       - name: Commit if changed
         run: |
+          set -euo pipefail
           rm -rf src
           if git diff --quiet docs/data.json; then echo "No new snapshot"; exit 0; fi
           git config user.name "turnout-bot"
           git config user.email "turnout-bot@users.noreply.github.com"
+          AS_OF=$(python3 -c "import json;print(json.load(open('docs/data.json'))['as_of'])")
           git add docs/data.json
-          git commit -m "Turnout snapshot $(python3 -c "import json;print(json.load(open('docs/data.json'))['as_of'])")"
+          git commit -m "Turnout snapshot $AS_OF"
           git push
